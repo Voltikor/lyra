@@ -1,0 +1,13 @@
+{
+  "minVersion": "0.8",
+  "required": true,
+  "package": "io.voltikor.lyra.mixin",
+  "compatibilityLevel": "${java}",
+  "client": [
+    "ChatScreenMixin",
+    "InGameHudMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

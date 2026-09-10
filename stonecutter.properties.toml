@@ -1,0 +1,20 @@
+mod.id = "lyra"
+mod.name = "Lyra"
+mod.archive_name = "lyra"
+mod.group = "io.voltikor"
+mod.version = "1.0.0"
+
+deps.fabric_loader = "0.19.3"
+loomx.loom_version = "1.17.20"
+
+["1.21.11"]
+mod.mc_compat = "1.21.11"
+mod.mc_releases = ["1.21.11"]
+mod.java = "21"
+deps.fabric_api = "0.141.6+1.21.11"
+
+["26.1.2"]
+mod.mc_compat = "26.1.2"
+mod.mc_releases = ["26.1.2"]
+mod.java = "25"
+deps.fabric_api = "0.155.2+26.1.2"

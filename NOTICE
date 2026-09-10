@@ -1,0 +1,18 @@
+Lyra
+Copyright (C) 2026 Voltikor and Lyra contributors
+
+Lyra includes code derived from the NoteBot implementation in Meteor Client:
+https://github.com/MeteorDevelopment/meteor-client
+
+Meteor Client is Copyright (c) Meteor Development and is licensed under the
+GNU General Public License version 3. Lyra is distributed under the same
+license. The full license text is provided in the LICENSE file.
+
+This repository was reconstructed from a distributed NoteBot build and has
+since been ported, reorganized, rebranded, tested, and extended. Major Lyra
+changes include multi-version Stonecutter builds, settings and song-config
+persistence, playback lifecycle refactoring, HUD improvements, a Mod Menu
+music desk, seeking, and expanded automated tests.
+
+Minecraft is a trademark of Microsoft Corporation. This project is not
+affiliated with or endorsed by Microsoft or Mojang Studios.

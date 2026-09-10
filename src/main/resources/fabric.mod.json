@@ -1,0 +1,37 @@
+{
+    "schemaVersion":  1,
+    "id":  "lyra",
+    "version":  "${version}",
+    "name":  "${name}",
+    "icon":  "assets/lyra/icon.png",
+    "description":  "Load, preview, tune, and play note-block songs from NBS and text files.",
+    "authors":  [
+                    "Voltikor"
+                ],
+    "contributors": [
+                    "Meteor Development (upstream Meteor Client)"
+                ],
+    "license": "GPL-3.0-only",
+    "contact":  {
+                    "homepage":  "https://modrinth.com/project/lyra"
+                },
+    "environment":  "client",
+    "entrypoints":  {
+                        "modmenu": ["io.voltikor.lyra.gui.LyraModMenu"],
+                        "client":  [
+                                       "io.voltikor.lyra.LyraClient"
+                                   ]
+                    },
+    "mixins":  [
+                   "lyra.mixins.json"
+               ],
+    "suggests":  {
+                     "modmenu":  "*"
+                 },
+    "depends": {
+        "fabricloader": ">=0.19.3",
+        "minecraft": "${minecraft}",
+        "fabric-api": "${fabric_api}",
+        "java": ">=${java}"
+    }
+}
