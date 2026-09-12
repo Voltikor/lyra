@@ -47,6 +47,7 @@ public final class LyraScreen extends Screen {
    private final List<Label> labels = new ArrayList<>();
    private final EnumMap<NoteBlockInstrument, ItemStack> instrumentIcons = new EnumMap<>(NoteBlockInstrument.class);
    private final EnumMap<Section, LyraScreenSection> sections = new EnumMap<>(Section.class);
+   private final MusicSection musicSection = new MusicSection();
    private final MappingsSection mappingsSection = new MappingsSection();
    private ScrollableChoices<?> dropdown;
    private Button dropdownAnchor;
@@ -58,7 +59,7 @@ public final class LyraScreen extends Screen {
    private String feedback = "";
 
    enum Section {
-      PLAYER("Player"), TUNING("Tuning"), MUSIC("Music"), HUD("HUD"), SONG("Song"), MAPS("Maps");
+      PLAYER("Player"), TUNING("Tuning"), MUSIC("Music"), HUD("HUD"), MAPS("Maps");
 
       final String label;
 
@@ -77,9 +78,8 @@ public final class LyraScreen extends Screen {
       this.commands = commands;
       sections.put(Section.PLAYER, new PlayerSection());
       sections.put(Section.TUNING, new TuningSection());
-      sections.put(Section.MUSIC, new MusicSection());
+      sections.put(Section.MUSIC, musicSection);
       sections.put(Section.HUD, new HudSection());
-      sections.put(Section.SONG, new SongSection());
       sections.put(Section.MAPS, mappingsSection);
    }
 
@@ -120,6 +120,11 @@ public final class LyraScreen extends Screen {
       navigate(Section.MAPS);
    }
 
+   void editSelectedSongMusic() {
+      musicSection.editSelectedSong();
+      navigate(Section.MUSIC);
+   }
+
    void firstPage() { page = 0; }
    void rebuild() { rebuildWidgets(); }
 
@@ -138,6 +143,14 @@ public final class LyraScreen extends Screen {
    void row(Consumer<Integer> row) { rows.add(row); }
    void liveUpdate(Runnable update) { liveUpdates.add(update); }
    void feedback(String message) { feedback = message; }
+
+   void scopeToggle(boolean selectedSong, String globalLabel, Consumer<Boolean> write) {
+      row(y -> button("Editing: " + (selectedSong ? "selected song" : globalLabel), left, y, span, () -> {
+         write.accept(!selectedSong);
+         firstPage();
+         rebuild();
+      }));
+   }
 
    LyraSettings settings() { return settings; }
    SongFileManager files() { return files; }
@@ -253,6 +266,7 @@ public final class LyraScreen extends Screen {
       if (dropdown == null) {
          boolean handled = super.mouseClicked(event, doubleClick);
          if (dropdown != null) setFocused(dropdown);
+         else if (getFocused() instanceof DeskButton) setFocused(null);
          return handled;
       }
       if (dropdown.isMouseOver(event.x(), event.y())) dropdown.mouseClicked(event, doubleClick);
@@ -328,7 +342,7 @@ public final class LyraScreen extends Screen {
             if (error != null) feedback = error;
             else {
                files.saveSettingsIfChanged(settings);
-               if (section != Section.SONG) feedback = "Applied " + name.toLowerCase(Locale.ROOT) + ".";
+               feedback = "Applied " + name.toLowerCase(Locale.ROOT) + ".";
                field.setValue(read.get());
             }
          });

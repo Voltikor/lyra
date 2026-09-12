@@ -41,12 +41,7 @@ final class MappingsSection implements LyraScreenSection {
             return false;
          }
       });
-      screen.row(y -> screen.button("Editing: " + (songMappings ? "selected song" : "global mappings"),
-            screen.left(), y, screen.span(), () -> {
-               songMappings = !songMappings;
-               screen.firstPage();
-               screen.rebuild();
-            }));
+      screen.scopeToggle(songMappings, "global mappings", value -> songMappings = value);
       if (songMappings && screen.songKey() == null) {
          screen.feedback("Choose a song first, or switch to global mappings.");
          return;

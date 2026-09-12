@@ -46,8 +46,8 @@ final class PlayerSection implements LyraScreenSection {
             () -> screen.startSelected(SongLoadIntent.PREVIEW));
       Button stop = screen.button("Stop", screen.left() + (width + gap) * 2, 114, width,
             () -> screen.playback().stop(screen.minecraftClient()));
-      screen.button("Song settings", screen.left() + (width + gap) * 3, 114, width,
-            () -> screen.navigate(LyraScreen.Section.SONG));
+      screen.button("Music settings", screen.left() + (width + gap) * 3, 114, width,
+            screen::editSelectedSongMusic);
       Button tune = screen.button("Tune", screen.left(), 138, width, () -> {
          if (screen.selectedIsLoaded()) screen.playback().startTuning(screen.minecraftClient(), false);
          else screen.feedback("Load the selected song before tuning.");

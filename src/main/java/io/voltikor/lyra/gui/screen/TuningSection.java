@@ -19,5 +19,9 @@ final class TuningSection implements LyraScreenSection {
       screen.cycle("Aim at", "Choose the visible face or the closest face of each note block.",
             RotateMode.values(), settings::rotateMode, settings::setRotateMode);
       screen.toggle("Swing arm", "Show an arm swing when playing notes.", settings::swingArm, settings::setSwingArm);
+      screen.toggle("Play chords", "Play simultaneous notes together. Off plays one note at a time.",
+            settings::polyphonic, settings::setPolyphonic);
+      screen.toggle("Keep music going", "Automatically play a random song when note-block playback finishes.",
+            settings::autoPlay, settings::setAutoPlay);
    }
 }
