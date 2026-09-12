@@ -9,10 +9,10 @@ import io.voltikor.lyra.noteblock.RotateMode;
 import io.voltikor.lyra.song.OutOfRangeMode;
 import io.voltikor.lyra.song.TempoQuantization;
 
-import java.util.Locale;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
@@ -23,7 +23,8 @@ public final class LyraSettingsCommands {
    public boolean setMode(Minecraft client, LyraSettings settings, String args) {
       InstrumentMatchMode mode = InstrumentMatchMode.parse(args);
       if (mode == null) {
-         LyraMessenger.errorFormatted(client, "Usage: /lyra mode <exact|any>"); return false;
+         LyraMessenger.errorFormatted(client, "Usage: /lyra mode <exact|any>");
+         return false;
       } else {
          settings.setMode(mode);
          LyraMessenger.replyFormatted(client, "Mode set to %1$s", settings.mode().name());
@@ -34,7 +35,8 @@ public final class LyraSettingsCommands {
    public boolean setInstrumentDetectMode(Minecraft client, LyraSettings settings, String args) {
       InstrumentDetectMode mode = InstrumentDetectMode.parse(args);
       if (mode == null) {
-         LyraMessenger.errorFormatted(client, "Usage: /lyra detect <blockstate|below>"); return false;
+         LyraMessenger.errorFormatted(client, "Usage: /lyra detect <blockstate|below>");
+         return false;
       } else {
          settings.setInstrumentDetectMode(mode);
          LyraMessenger.replyFormatted(client, "Instrument detect mode set to %1$s", settings.instrumentDetectMode().name());
@@ -45,7 +47,8 @@ public final class LyraSettingsCommands {
    public boolean setTempoQuantization(Minecraft client, LyraSettings settings, String args) {
       TempoQuantization quant = TempoQuantization.parse(args);
       if (quant == null) {
-         LyraMessenger.errorFormatted(client, "Usage: /lyra tempo <default|snap_nearest|snap_up|snap_down>"); return false;
+         LyraMessenger.errorFormatted(client, "Usage: /lyra tempo <default|snap_nearest|snap_up|snap_down>");
+         return false;
       } else {
          settings.setTempoQuantization(quant);
          LyraMessenger.replyFormatted(client, "Tempo quantization set to %1$s", settings.tempoQuantization().name());
@@ -56,10 +59,15 @@ public final class LyraSettingsCommands {
    public boolean setTickDelay(Minecraft client, LyraSettings settings, String args) {
       try {
          int value = Integer.parseInt(args);
+         if (value < 1 || value > 20) {
+            LyraMessenger.errorFormatted(client, "Usage: /lyra delay <1-20>");
+            return false;
+         }
          this.setTickDelayValue(settings, value);
          LyraMessenger.replyFormatted(client, "tick-delay = %1$s", settings.tickDelay());
       } catch (NumberFormatException ignored) {
-         LyraMessenger.errorFormatted(client, "Usage: /lyra delay <1-20>"); return false;
+         LyraMessenger.errorFormatted(client, "Usage: /lyra delay <1-20>");
+         return false;
       }
       return true;
    }
@@ -67,10 +75,15 @@ public final class LyraSettingsCommands {
    public boolean setCheckNoteblocksAgainDelay(Minecraft client, LyraSettings settings, String args) {
       try {
          int value = Integer.parseInt(args);
+         if (value < 1 || value > 100) {
+            LyraMessenger.errorFormatted(client, "Usage: /lyra checknoteblocksagaindelay <1-100>");
+            return false;
+         }
          this.setCheckNoteblocksAgainDelayValue(settings, value);
          LyraMessenger.replyFormatted(client, "check-noteblocks-again-delay = %1$s", settings.checkNoteblocksAgainDelay());
       } catch (NumberFormatException ignored) {
-         LyraMessenger.errorFormatted(client, "Usage: /lyra checknoteblocksagaindelay <1-100>"); return false;
+         LyraMessenger.errorFormatted(client, "Usage: /lyra checknoteblocksagaindelay <1-100>");
+         return false;
       }
       return true;
    }
@@ -78,7 +91,8 @@ public final class LyraSettingsCommands {
    public boolean setConcurrentTuneBlocks(Minecraft client, LyraSettings settings, String args) {
       Integer value = this.parseConcurrentTuneBlocks(args);
       if (value == null) {
-         LyraMessenger.errorFormatted(client, "Usage: /lyra concurrent <1-20|unlimited>"); return false;
+         LyraMessenger.errorFormatted(client, "Usage: /lyra concurrent <1-20|unlimited>");
+         return false;
       } else {
          this.setConcurrentTuneBlocksValue(settings, value);
          LyraMessenger.replyFormatted(client, "concurrent-tune-blocks = %1$s", this.concurrentTuneBlocksLabel(settings));
@@ -133,7 +147,7 @@ public final class LyraSettingsCommands {
          } else if (!normalized.equals("unlimited") && !normalized.equals("max") && !normalized.equals("inf") && !normalized.equals("infinite") && !normalized.equals("無制限")) {
             try {
                int parsed = Integer.parseInt(normalized);
-               return parsed > 20 ? 0 : parsed;
+               return parsed >= 1 && parsed <= 20 ? parsed : null;
             } catch (NumberFormatException ignored) {
                return null;
             }
@@ -153,15 +167,20 @@ public final class LyraSettingsCommands {
       String sub = split[0].toLowerCase(Locale.ROOT);
       String subArgs = split.length == 2 ? split[1].trim() : "";
       switch (sub) {
-         case "anchor" -> { return this.setHudAnchor(client, settings, subArgs); }
-         case "autohide" -> { return this.setHudAutoHide(client, settings, subArgs); }
+         case "anchor" -> {
+            return this.setHudAnchor(client, settings, subArgs);
+         }
+         case "autohide" -> {
+            return this.setHudAutoHide(client, settings, subArgs);
+         }
          default -> {
             Boolean parsed = this.parseBoolean(args);
             if (parsed != null) {
                settings.setShowHud(parsed);
                LyraMessenger.replyFormatted(client, "%1$s = %2$s", "hud", settings.showHud());
             } else {
-               LyraMessenger.errorFormatted(client, "Usage: /lyra hud <on|off|anchor <top_left|top_right|bottom_left|bottom_right>|autohide <on|off>>"); return false;
+               LyraMessenger.errorFormatted(client, "Usage: /lyra hud <on|off|anchor <top_left|top_right|bottom_left|bottom_right>|autohide <on|off>>");
+               return false;
             }
          }
       }
@@ -171,7 +190,8 @@ public final class LyraSettingsCommands {
    public boolean setHudAnchor(Minecraft client, LyraSettings settings, String args) {
       HudAnchor anchor = HudAnchor.parse(args);
       if (anchor == null) {
-         LyraMessenger.errorFormatted(client, "Usage: /lyra hud anchor <top_left|top_right|bottom_left|bottom_right>"); return false;
+         LyraMessenger.errorFormatted(client, "Usage: /lyra hud anchor <top_left|top_right|bottom_left|bottom_right>");
+         return false;
       } else {
          settings.setHudAnchor(anchor);
          LyraMessenger.replyFormatted(client, "hud anchor = %1$s", anchor.name().toLowerCase(Locale.ROOT));
@@ -182,7 +202,8 @@ public final class LyraSettingsCommands {
    public boolean setHudAutoHide(Minecraft client, LyraSettings settings, String args) {
       Boolean parsed = this.parseBoolean(args);
       if (parsed == null) {
-         LyraMessenger.errorFormatted(client, "Usage: /lyra hud autohide <on|off>"); return false;
+         LyraMessenger.errorFormatted(client, "Usage: /lyra hud autohide <on|off>");
+         return false;
       } else {
          settings.setHudAutoHide(parsed);
          LyraMessenger.replyFormatted(client, "hud autohide = %1$s", parsed);
@@ -193,7 +214,8 @@ public final class LyraSettingsCommands {
    public boolean setBooleanFlag(Minecraft client, LyraSettings settings, String key, String value) {
       Boolean parsed = this.parseBoolean(value);
       if (parsed == null) {
-         LyraMessenger.errorFormatted(client, "Usage: /lyra %1$s <on|off>", key); return false;
+         LyraMessenger.errorFormatted(client, "Usage: /lyra %1$s <on|off>", key);
+         return false;
       } else {
          switch (key) {
             case "polyphonic" -> settings.setPolyphonic(parsed);
@@ -202,7 +224,8 @@ public final class LyraSettingsCommands {
             case "swing" -> settings.setSwingArm(parsed);
             case "hud" -> settings.setShowHud(parsed);
             default -> {
-               return true;
+               LyraMessenger.errorFormatted(client, "Unknown boolean setting: %1$s", key);
+               return false;
             }
          }
 
@@ -214,7 +237,8 @@ public final class LyraSettingsCommands {
    public boolean setRotateMode(Minecraft client, LyraSettings settings, String args) {
       RotateMode mode = RotateMode.parse(args);
       if (mode == null) {
-         LyraMessenger.errorFormatted(client, "Usage: /lyra rotatemode <visible_face|closest_face>"); return false;
+         LyraMessenger.errorFormatted(client, "Usage: /lyra rotatemode <visible_face|closest_face>");
+         return false;
       } else {
          settings.setRotateMode(mode);
          LyraMessenger.replyFormatted(client, "rotate-mode = %1$s", settings.rotateMode().name());
@@ -225,7 +249,8 @@ public final class LyraSettingsCommands {
    public boolean setOutOfRangeMode(Minecraft client, LyraSettings settings, String args) {
       OutOfRangeMode mode = OutOfRangeMode.fromInput(args);
       if (mode == null) {
-         LyraMessenger.errorFormatted(client, "Usage: /lyra round <drop|clamp|fold|remap>"); return false;
+         LyraMessenger.errorFormatted(client, "Usage: /lyra round <drop|clamp|fold|remap>");
+         return false;
       } else {
          settings.setOutOfRangeMode(mode);
          LyraMessenger.replyFormatted(client, "out-of-range-mode = %1$s", mode.name().toLowerCase(Locale.ROOT));
@@ -248,12 +273,14 @@ public final class LyraSettingsCommands {
 
       String[] parts = trimmed.split("\\s+");
       if (parts[0].equalsIgnoreCase("remove")) {
-         if (parts.length < 2) {
-            LyraMessenger.errorFormatted(client, "Usage: /lyra map [add <from> <to> | remove <from> | clear | list]"); return false;
+         if (parts.length != 2) {
+            LyraMessenger.errorFormatted(client, "Usage: /lyra map [add <from> <to> | remove <from> | clear | list]");
+            return false;
          }
          NoteBlockInstrument from = LyraSettings.parseInstrument(parts[1]);
          if (from == null) {
-            LyraMessenger.errorFormatted(client, "Unknown source instrument: %1$s", parts[1]); return false;
+            LyraMessenger.errorFormatted(client, "Unknown source instrument: %1$s", parts[1]);
+            return false;
          } else {
             settings.setInstrumentOverride(from, null);
             LyraMessenger.replyFormatted(client, "Mapping removed for %1$s", LyraMessenger.instrumentLabel(from));
@@ -262,16 +289,19 @@ public final class LyraSettingsCommands {
       }
 
       if (parts[0].equalsIgnoreCase("add")) {
-         if (parts.length < 3) {
-            LyraMessenger.errorFormatted(client, "Usage: /lyra map [add <from> <to> | remove <from> | clear | list]"); return false;
+         if (parts.length != 3) {
+            LyraMessenger.errorFormatted(client, "Usage: /lyra map [add <from> <to> | remove <from> | clear | list]");
+            return false;
          }
          NoteBlockInstrument from = LyraSettings.parseInstrument(parts[1]);
          if (from == null) {
-            LyraMessenger.errorFormatted(client, "Unknown source instrument: %1$s", parts[1]); return false;
+            LyraMessenger.errorFormatted(client, "Unknown source instrument: %1$s", parts[1]);
+            return false;
          }
          NoteBlockInstrument to = LyraSettings.parseInstrument(parts[2]);
          if (to == null) {
-            LyraMessenger.errorFormatted(client, "Unknown target instrument: %1$s", parts[2]); return false;
+            LyraMessenger.errorFormatted(client, "Unknown target instrument: %1$s", parts[2]);
+            return false;
          } else {
             settings.setInstrumentOverride(from, to);
             LyraMessenger.replyFormatted(client, "Mapped %1$s -> %2$s", LyraMessenger.instrumentLabel(from), LyraMessenger.instrumentLabel(to));
@@ -279,7 +309,8 @@ public final class LyraSettingsCommands {
          return true;
       }
 
-      LyraMessenger.errorFormatted(client, "Usage: /lyra map [add <from> <to> | remove <from> | clear | list]"); return false;
+      LyraMessenger.errorFormatted(client, "Usage: /lyra map [add <from> <to> | remove <from> | clear | list]");
+      return false;
    }
 
    public boolean setTranspose(Minecraft client, LyraSettings settings, String value) {

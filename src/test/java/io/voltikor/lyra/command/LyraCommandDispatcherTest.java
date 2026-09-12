@@ -1,36 +1,42 @@
 package io.voltikor.lyra.command;
 
+import com.mojang.brigadier.CommandDispatcher;
 import io.voltikor.lyra.MinecraftTestSupport;
-import java.util.List;
+import io.voltikor.lyra.config.LyraSettings;
+import io.voltikor.lyra.song.SongFileManager;
+import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LyraCommandDispatcherTest extends MinecraftTestSupport {
    @Test
-   void catalogContainsCanonicalCommandsAndAliases() {
-      var dispatcher = new LyraCommandDispatcher();
+   void brigadierTreeValidatesRangesAndNestedArguments() {
+      var handlers = new LyraCommandHandlers(new LyraSettings(), new SongFileManager(), null, null, null);
+      var commands = new LyraCommandDispatcher(handlers);
+      var brigadier = new CommandDispatcher<FabricClientCommandSource>();
+      commands.register(brigadier);
 
-      assertTrue(dispatcher.commandNames().containsAll(List.of("songs", "list", "preview", "transpose")));
-      assertTrue(java.util.Collections.disjoint(dispatcher.commandNames(),
-            List.of("previewinstruments", "preview-instruments", "instruments")));
-      assertEquals("", dispatcher.extractSlashPayload("/LYRA"));
-      assertEquals("play My Song.nbs", dispatcher.extractSlashPayload("/lyra play My Song.nbs"));
-      assertEquals("preview My Song.nbs", dispatcher.extractChatPayload("/lyra preview My Song.nbs"));
+      assertTrue(brigadier.getRoot().getChild("lyra").getChildren().stream()
+            .map(node -> node.getName())
+            .toList()
+            .containsAll(java.util.List.of("songs", "list", "preview", "transpose", "folder", "path")));
+      assertParses(brigadier, "lyra delay 20");
+      assertDoesNotParse(brigadier, "lyra delay 21");
+      assertParses(brigadier, "lyra song map add harp bass");
+      assertDoesNotParse(brigadier, "lyra song map add harp bass extra");
+      assertParses(brigadier, "lyra play My Song.nbs");
    }
 
-   @Test
-   void suggestionsComeFromCommandMetadataAndPreserveFileSpaces() {
-      var dispatcher = new LyraCommandDispatcher();
+   private static void assertParses(CommandDispatcher<FabricClientCommandSource> dispatcher, String command) {
+      var result = dispatcher.parse(command, (FabricClientCommandSource) null);
+      assertFalse(result.getReader().canRead(), command);
+      assertTrue(result.getExceptions().isEmpty(), command);
+   }
 
-      assertEquals(List.of("My Song.nbs"), dispatcher.suggestions("load", "My ",
-            List.of("My Song.nbs", "Other.txt")));
-      assertTrue(dispatcher.suggestions("map", "add ", List.of()).contains("add harp"));
-      assertTrue(dispatcher.suggestions("hud", "anchor ", List.of()).contains("anchor top_left"));
-      assertTrue(dispatcher.suggestions("song", "round ", List.of()).contains("round clamp"));
-      assertTrue(dispatcher.suggestions("song", "transpose ", List.of()).contains("transpose off"));
-      assertEquals(io.voltikor.lyra.config.TransposeSetting.options(), dispatcher.suggestions("transpose", "", List.of()));
-      assertTrue(dispatcher.suggestions("song", "transpose ", List.of()).contains("transpose +24"));
+   private static void assertDoesNotParse(CommandDispatcher<FabricClientCommandSource> dispatcher, String command) {
+      var result = dispatcher.parse(command, (FabricClientCommandSource) null);
+      assertTrue(result.getReader().canRead() || !result.getExceptions().isEmpty(), command);
    }
 }

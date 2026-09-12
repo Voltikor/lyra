@@ -23,7 +23,8 @@ public final class SongConfigCommands {
 
    public boolean handleSongCommand(Minecraft client, String args, Path activePath) {
       if (activePath == null) {
-         LyraMessenger.error(client, "No active or selected song."); return false;
+         LyraMessenger.error(client, "No active or selected song.");
+         return false;
       }
       String storedPath = this.fileManager.toStoredSongPath(activePath);
       String[] split = args.trim().split("\\s+", 2);
@@ -33,7 +34,8 @@ public final class SongConfigCommands {
       switch (sub) {
          case "tempo" -> {
             if (value.isEmpty()) {
-               LyraMessenger.error(client, "Usage: /lyra song tempo <mode|reset>"); return false;
+               LyraMessenger.error(client, "Usage: /lyra song tempo <mode|reset>");
+               return false;
             }
             if (value.equalsIgnoreCase("reset") || value.equalsIgnoreCase("default")) {
                this.fileManager.songConfigManager().setTempoOverride(storedPath, null);
@@ -47,13 +49,15 @@ public final class SongConfigCommands {
                         "Set tempo quantization override for " + activePath.getFileName() + " to " + mode.name() + ".");
                } else {
                   LyraMessenger.error(client,
-                        "Invalid tempo mode. Valid: default, snap_nearest, snap_up, snap_down, reset"); return false;
+                        "Invalid tempo mode. Valid: default, snap_nearest, snap_up, snap_down, reset");
+                  return false;
                }
             }
          }
          case "transpose" -> {
             if (value.isEmpty()) {
-               LyraMessenger.error(client, "Usage: /lyra song transpose <" + TransposeSetting.usage() + "|reset>"); return false;
+               LyraMessenger.error(client, "Usage: /lyra song transpose <" + TransposeSetting.usage() + "|reset>");
+               return false;
             }
             if (value.equalsIgnoreCase("reset") || value.equalsIgnoreCase("default")) {
                this.fileManager.songConfigManager().setTransposeOverride(storedPath, null);
@@ -62,7 +66,8 @@ public final class SongConfigCommands {
             } else {
                TransposeSetting transpose = TransposeSetting.parse(value);
                if (transpose == null) {
-                  LyraMessenger.error(client, "Invalid transpose value. Valid: " + TransposeSetting.usage() + "|reset"); return false;
+                  LyraMessenger.error(client, "Invalid transpose value. Valid: " + TransposeSetting.usage() + "|reset");
+                  return false;
                }
                this.fileManager.songConfigManager().setTransposeOverride(storedPath, transpose);
                LyraMessenger.reply(client, "Set transpose override for " + activePath.getFileName()
@@ -71,7 +76,8 @@ public final class SongConfigCommands {
          }
          case "round" -> {
             if (value.isEmpty()) {
-               LyraMessenger.error(client, "Usage: /lyra song round <drop|clamp|fold|remap|reset>"); return false;
+               LyraMessenger.error(client, "Usage: /lyra song round <drop|clamp|fold|remap|reset>");
+               return false;
             }
             if (value.equalsIgnoreCase("reset") || value.equalsIgnoreCase("default")) {
                this.fileManager.songConfigManager().setOutOfRangeModeOverride(storedPath, null);
@@ -80,14 +86,17 @@ public final class SongConfigCommands {
                OutOfRangeMode mode = OutOfRangeMode.fromInput(value);
                if (mode == null) {
                   LyraMessenger.error(client,
-                        "Invalid round mode. Valid: drop, clamp, fold, remap, reset"); return false;
+                        "Invalid round mode. Valid: drop, clamp, fold, remap, reset");
+                  return false;
                }
                this.fileManager.songConfigManager().setOutOfRangeModeOverride(storedPath, mode);
                LyraMessenger.reply(client, "Set round override for " + activePath.getFileName()
                      + " to " + mode.name().toLowerCase(java.util.Locale.ROOT) + ".");
             }
          }
-         case "map" -> { return this.handleSongMapCommand(client, activePath, storedPath, value); }
+         case "map" -> {
+            return this.handleSongMapCommand(client, activePath, storedPath, value);
+         }
          case "config" -> {
             SongConfig cfg = this.fileManager.songConfigManager().getConfig(storedPath);
             if (cfg == null || cfg.isEmpty()) {
@@ -125,7 +134,8 @@ public final class SongConfigCommands {
          }
          default -> {
             LyraMessenger.error(client,
-                  "Usage: /lyra song <transpose|tempo|round|map|config|clear> [args]"); return false;
+                  "Usage: /lyra song <transpose|tempo|round|map|config|clear> [args]");
+            return false;
          }
       }
       return true;
@@ -157,12 +167,14 @@ public final class SongConfigCommands {
 
       String[] parts = trimmed.split("\\s+");
       if (parts[0].equalsIgnoreCase("remove")) {
-         if (parts.length < 2) {
-            LyraMessenger.error(client, "Usage: /lyra song map remove <from>"); return false;
+         if (parts.length != 2) {
+            LyraMessenger.error(client, "Usage: /lyra song map remove <from>");
+            return false;
          }
          NoteBlockInstrument from = LyraSettings.parseInstrument(parts[1]);
          if (from == null) {
-            LyraMessenger.error(client, "Unknown source instrument: " + parts[1]); return false;
+            LyraMessenger.error(client, "Unknown source instrument: " + parts[1]);
+            return false;
          } else {
             this.fileManager.songConfigManager().removeInstrumentOverride(storedPath, from);
             LyraMessenger.reply(client, "Removed per-song instrument mapping for " + LyraSettings.prettyName(from)
@@ -172,16 +184,19 @@ public final class SongConfigCommands {
       }
 
       if (parts[0].equalsIgnoreCase("add")) {
-         if (parts.length < 3) {
-            LyraMessenger.error(client, "Usage: /lyra song map add <from> <to>"); return false;
+         if (parts.length != 3) {
+            LyraMessenger.error(client, "Usage: /lyra song map add <from> <to>");
+            return false;
          }
          NoteBlockInstrument from = LyraSettings.parseInstrument(parts[1]);
          if (from == null) {
-            LyraMessenger.error(client, "Unknown source instrument: " + parts[1]); return false;
+            LyraMessenger.error(client, "Unknown source instrument: " + parts[1]);
+            return false;
          }
          NoteBlockInstrument to = LyraSettings.parseInstrument(parts[2]);
          if (to == null) {
-            LyraMessenger.error(client, "Unknown target instrument: " + parts[2]); return false;
+            LyraMessenger.error(client, "Unknown target instrument: " + parts[2]);
+            return false;
          } else {
             this.fileManager.songConfigManager().setInstrumentOverride(storedPath, from, to);
             LyraMessenger.reply(client, "Set per-song instrument mapping: " + LyraSettings.prettyName(from)
@@ -190,18 +205,8 @@ public final class SongConfigCommands {
          return true;
       }
 
-      LyraMessenger.error(client, "Usage: /lyra song map [add|remove|clear|list]"); return false;
-   }
-
-   private static Boolean parseBoolean(String value) {
-      if (value == null) {
-         return null;
-      }
-      return switch (value.trim().toLowerCase(java.util.Locale.ROOT)) {
-         case "on", "true", "1", "yes" -> true;
-         case "off", "false", "0", "no" -> false;
-         default -> null;
-      };
+      LyraMessenger.error(client, "Usage: /lyra song map [add|remove|clear|list]");
+      return false;
    }
 
 }

@@ -1,227 +1,262 @@
 package io.voltikor.lyra.command;
 
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.tree.LiteralCommandNode;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import io.voltikor.lyra.LyraClient;
 import io.voltikor.lyra.config.LyraSettings;
-import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.StringArgumentType;
+import io.voltikor.lyra.config.TransposeSetting;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
 
+/** Registers Lyra as a native Fabric client-side Brigadier command tree. */
+@Environment(EnvType.CLIENT)
 public final class LyraCommandDispatcher {
-   @FunctionalInterface
-   interface Handler { boolean run(Minecraft client, String args); }
-   record Definition(String name, List<String> aliases, String usage, List<String> patterns, Handler handler) {}
-   private final List<Definition> definitions = new ArrayList<>();
-   private final Map<String, Definition> byName = new LinkedHashMap<>();
-   private final LyraCommandHandlers handlers;
+   private static final List<String> TEMPOS = List.of("default", "snap_nearest", "snap_up", "snap_down");
+   private static final List<String> ROUND_MODES = List.of("drop", "clamp", "fold", "remap", "on", "off");
+   private static final List<String> HUD_ANCHORS = List.of("top_left", "top_right", "bottom_left", "bottom_right");
 
-   LyraCommandDispatcher() {
-      this(null);
-   }
+   private final LyraCommandHandlers handlers;
+   private CommandDispatcher<FabricClientCommandSource> dispatcher;
+   private LiteralCommandNode<FabricClientCommandSource> rootNode;
 
    public LyraCommandDispatcher(LyraCommandHandlers handlers) {
       this.handlers = handlers;
-      add("help", "", List.of(), (c, a) -> {
-         if (!a.isEmpty()) {
-            LyraMessenger.error(c, "Usage: /lyra help");
-            return false;
-         }
-         sendHelp(c);
-         return true;
-      });
-      action("songs", c -> this.handlers().listSongs(c), "list");
-      add("load", "<file>", List.of("<file>"), (c, a) -> this.handlers().load(c, a));
-      add("play", "[file]", List.of("<file>"), (c, a) -> this.handlers().play(c, a));
-      add("preview", "[file]", List.of("<file>"), (c, a) -> this.handlers().preview(c, a));
-      add("tune", "", List.of(), (c, a) -> {
-         if (!a.isEmpty()) {
-            LyraMessenger.error(c, "Usage: /lyra tune");
-            return false;
-         }
-         return this.handlers().tune(c);
-      });
-      add("pause", "", List.of(), (c, a) -> {
-         if (!a.isEmpty()) {
-            LyraMessenger.error(c, "Usage: /lyra pause");
-            return false;
-         }
-         return this.handlers().pause(c);
-      });
-      action("stop", c -> this.handlers().stop(c));
-      action("status", c -> this.handlers().sendStatus(c));
-      action("center", c -> this.handlers().centerPlayer(c));
-      add("random", "", List.of(), (c, a) -> {
-         if (!a.isEmpty()) {
-            LyraMessenger.error(c, "Usage: /lyra random");
-            return false;
-         }
-         return this.handlers().playRandom(c);
-      });
-      action("folder", c -> LyraMessenger.replyFormatted(c, "Song folder: %1$s", this.handlers().songsFolderLabel()), "path");
-      add("mode", "<exact|any>", List.of("exact", "any"), (c, a) -> this.handlers().setMode(c, a));
-      add("detect", "<blockstate|below>", List.of("blockstate", "below"), (c, a) -> this.handlers().setInstrumentDetectMode(c, a));
-      add("tempo", "<default|snap_nearest|snap_up|snap_down>", tempos(), (c, a) -> this.handlers().setTempoQuantization(c, a));
-      add("delay", "<1-20>", List.of(), (c, a) -> this.handlers().setTickDelay(c, a));
-      add("checknoteblocksagaindelay", "<1-100>", List.of(), (c, a) -> this.handlers().setCheckNoteblocksAgainDelay(c, a));
-      add("concurrent", "<1-20|unlimited>", List.of("unlimited"), (c, a) -> this.handlers().setConcurrentTuneBlocks(c, a));
-      for (String flag : List.of("polyphonic", "rotate", "autoplay", "swing")) {
-         add(flag, "<on|off>", List.of("on", "off"), (c, a) -> this.handlers().setBooleanFlag(c, flag, a),
-               new String[0]);
-      }
-      add("transpose", "<" + io.voltikor.lyra.config.TransposeSetting.usage() + ">", io.voltikor.lyra.config.TransposeSetting.options(),
-            (c, a) -> this.handlers().setTranspose(c, a));
-      add("rotatemode", "<visible_face|closest_face>", List.of("visible_face", "closest_face"), (c, a) -> this.handlers().setRotateMode(c, a));
-      add("round", "<drop|clamp|fold|remap>", List.of("drop", "clamp", "fold", "remap", "on", "off"), (c, a) -> this.handlers().setOutOfRangeMode(c, a));
-      add("hud", "[on|off|autohide <on|off>|anchor <position>]", List.of("on", "off", "autohide on", "autohide off", "anchor top_left", "anchor top_right", "anchor bottom_left", "anchor bottom_right"), (c, a) -> this.handlers().handleHudCommand(c, a));
-      add("map", "[add <from> <to>|remove <from>|clear|list]", mappings(), (c, a) -> this.handlers().setInstrumentMap(c, a));
-      List<String> songPatterns = new ArrayList<>(List.of("config", "clear", "map", "tempo reset",
-            "transpose reset", "round reset"));
-      for (String value : io.voltikor.lyra.config.TransposeSetting.options()) {
-         songPatterns.add("transpose " + value);
-      }
-      for (String value : tempos()) songPatterns.add("tempo " + value);
-      for (String value : rounds()) songPatterns.add("round " + value);
-      for (String value : mappings()) songPatterns.add("map " + value);
-      add("song", "<config|clear|transpose <" + io.voltikor.lyra.config.TransposeSetting.usage() + "|reset>|tempo <mode|reset>|round <mode|reset>|map [add <from> <to>|remove <from>|clear|list]>", songPatterns,
-            (c, a) -> this.handlers().handleSongConfig(c, a));
    }
-
-   private static List<String> tempos() { return List.of("default", "snap_nearest", "snap_up", "snap_down"); }
-   private static List<String> rounds() { return List.of("default", "drop", "clamp", "fold", "remap", "on", "off"); }
-   private static List<String> mappings() { return List.of("list", "clear", "remove <instrument>", "add <instrument> <instrument>"); }
-
-   private void action(String name, Consumer<Minecraft> action, String... aliases) {
-      add(name, "", List.of(), (client, args) -> {
-         if (!args.isEmpty()) {
-            LyraMessenger.error(client, "Usage: /lyra " + name);
-            return false;
-         }
-         action.accept(client);
-         return true;
-      }, aliases);
-   }
-
-   private void add(String name, String usage, List<String> patterns, Handler handler, String... aliases) {
-      Definition definition = new Definition(name, List.of(aliases), usage, List.copyOf(patterns), handler);
-      this.definitions.add(definition);
-      this.byName.put(name, definition);
-      for (String alias : aliases) this.byName.put(alias, definition);
-   }
-
-   List<Definition> definitions() { return List.copyOf(this.definitions); }
-   public List<String> commandNames() { return List.copyOf(this.byName.keySet()); }
 
    public void register(CommandDispatcher<FabricClientCommandSource> dispatcher) {
-      var root = ClientCommands.literal("lyra").executes(ctx -> execute(ctx.getSource().getClient(), "help", ""));
-      this.definitions.forEach(definition -> {
-         registerLiteral(root, definition.name(), definition);
-         for (String alias : definition.aliases()) registerLiteral(root, alias, definition);
-      });
-      dispatcher.register(root);
+      LiteralArgumentBuilder<FabricClientCommandSource> root = ClientCommands.literal("lyra")
+            .executes(this::sendHelp);
+      this.registerActions(root);
+      this.registerSettings(root);
+      this.registerInstrumentMap(root, "map", false);
+      this.registerSongSettings(root);
+      this.dispatcher = dispatcher;
+      this.rootNode = dispatcher.register(root);
    }
 
-   private void registerLiteral(com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> root,
-         String name, Definition definition) {
-      root.then(ClientCommands.literal(name)
-            .executes(ctx -> execute(ctx.getSource().getClient(), definition.name(), ""))
-            .then(ClientCommands.argument("args", StringArgumentType.greedyString())
-                  .suggests((ctx, builder) -> {
-                     List<String> songs = this.handlers == null ? List.of() : this.handlers.availableSongNames();
-                     for (String value : suggestions(definition.name(), builder.getRemaining(), songs)) builder.suggest(value);
-                     return builder.buildFuture();
-                  })
-                  .executes(ctx -> execute(ctx.getSource().getClient(), definition.name(), StringArgumentType.getString(ctx, "args")))));
+   private void registerActions(LiteralArgumentBuilder<FabricClientCommandSource> root) {
+      root.then(ClientCommands.literal("help").executes(this::sendHelp));
+      addAction(root, "songs", this.handlers::listSongs);
+      addAction(root, "list", this.handlers::listSongs);
+      addFileCommand(root, "load", false, this.handlers::load);
+      addFileCommand(root, "play", true, this.handlers::play);
+      addFileCommand(root, "preview", true, this.handlers::preview);
+      addBooleanAction(root, "tune", this.handlers::tune);
+      addBooleanAction(root, "pause", this.handlers::pause);
+      addAction(root, "stop", this.handlers::stop);
+      addAction(root, "status", this.handlers::sendStatus);
+      addAction(root, "center", this.handlers::centerPlayer);
+      addBooleanAction(root, "random", this.handlers::playRandom);
+      Consumer<Minecraft> folder = client -> LyraMessenger.replyFormatted(client,
+            "Song folder: %1$s", this.handlers.songsFolderLabel());
+      addAction(root, "folder", folder);
+      addAction(root, "path", folder);
    }
 
-   public int execute(Minecraft client, String name, String args) {
-      Definition command = this.byName.get(name.toLowerCase(Locale.ROOT));
-      if (command == null) {
-         LyraMessenger.error(client, "Unknown command. Use /lyra help");
-         return 0;
+   private void registerSettings(LiteralArgumentBuilder<FabricClientCommandSource> root) {
+      addChoice(root, "mode", List.of("exact", "any"), this.handlers::setMode);
+      addChoice(root, "detect", List.of("blockstate", "below"), this.handlers::setInstrumentDetectMode);
+      addChoice(root, "tempo", TEMPOS, this.handlers::setTempoQuantization);
+      addInteger(root, "delay", "ticks", 1, 20, this.handlers::setTickDelay);
+      addInteger(root, "checknoteblocksagaindelay", "ticks", 1, 100,
+            this.handlers::setCheckNoteblocksAgainDelay);
+
+      LiteralArgumentBuilder<FabricClientCommandSource> concurrent = ClientCommands.literal("concurrent");
+      concurrent.then(ClientCommands.literal("unlimited")
+            .executes(context -> result(this.handlers.setConcurrentTuneBlocks(client(context), "unlimited"))));
+      concurrent.then(ClientCommands.argument("count", IntegerArgumentType.integer(1, 20))
+            .executes(context -> result(this.handlers.setConcurrentTuneBlocks(client(context),
+                  Integer.toString(IntegerArgumentType.getInteger(context, "count"))))));
+      root.then(concurrent);
+
+      for (String flag : List.of("polyphonic", "rotate", "autoplay", "swing")) {
+         addToggle(root, flag, (client, value) -> this.handlers.setBooleanFlag(client, flag, value));
       }
-      return command.handler().run(client, args.trim()) ? 1 : 0;
+      addChoice(root, "transpose", TransposeSetting.options(), this.handlers::setTranspose);
+      addChoice(root, "rotatemode", List.of("visible_face", "closest_face"), this.handlers::setRotateMode);
+      addChoice(root, "round", ROUND_MODES, this.handlers::setOutOfRangeMode);
+
+      LiteralArgumentBuilder<FabricClientCommandSource> hud = ClientCommands.literal("hud")
+            .executes(context -> result(this.handlers.handleHudCommand(client(context), "")));
+      addToggleChildren(hud, this.handlers::handleHudCommand);
+      hud.then(choiceNode("anchor", HUD_ANCHORS,
+            (minecraft, value) -> this.handlers.handleHudCommand(minecraft, "anchor " + value)));
+      hud.then(toggleNode("autohide",
+            (minecraft, value) -> this.handlers.handleHudCommand(minecraft, "autohide " + value)));
+      root.then(hud);
    }
 
-   public boolean handleChatCommand(Minecraft client, String input) {
-      String payload = extractChatPayload(input);
-      if (payload == null) return false;
-      executePayload(client, payload);
-      return true; // Keep recognized Lyra commands local even when their arguments are invalid.
+   private void registerSongSettings(LiteralArgumentBuilder<FabricClientCommandSource> root) {
+      LiteralArgumentBuilder<FabricClientCommandSource> song = ClientCommands.literal("song");
+      addSongAction(song, "config", "config");
+      addSongAction(song, "clear", "clear");
+      song.then(songChoiceNode("tempo", append(TEMPOS, "reset")));
+      song.then(songChoiceNode("transpose", append(TransposeSetting.options(), "reset")));
+      song.then(songChoiceNode("round", append(ROUND_MODES, "reset")));
+      this.registerInstrumentMap(song, "map", true);
+      root.then(song);
    }
 
-   public boolean handleSlashCommand(Minecraft client, String input) {
-      String payload = extractSlashPayload(input);
-      if (payload == null) return false;
-      executePayload(client, payload);
-      return true;
-   }
+   private void registerInstrumentMap(LiteralArgumentBuilder<FabricClientCommandSource> parent, String name,
+         boolean perSong) {
+      BiFunction<Minecraft, String, Boolean> handler = perSong
+            ? (client, args) -> this.handlers.handleSongConfig(client, "map" + (args.isEmpty() ? "" : " " + args))
+            : this.handlers::setInstrumentMap;
+      LiteralArgumentBuilder<FabricClientCommandSource> map = ClientCommands.literal(name)
+            .executes(context -> result(handler.apply(client(context), "list")));
+      map.then(ClientCommands.literal("list")
+            .executes(context -> result(handler.apply(client(context), "list"))));
+      map.then(ClientCommands.literal("clear")
+            .executes(context -> result(handler.apply(client(context), "clear"))));
 
-   public int executePayload(Minecraft client, String payload) {
-      String[] parts = payload.trim().split("\\s+", 2);
-      return execute(client, parts[0].isEmpty() ? "help" : parts[0], parts.length == 2 ? parts[1] : "");
-   }
-
-   private LyraCommandHandlers handlers() {
-      if (this.handlers == null) {
-         throw new IllegalStateException("Command handlers are not configured");
-      }
-      return this.handlers;
-   }
-
-   public String extractChatPayload(String input) {
-      return input != null && input.startsWith("/") ? extractSlashPayload(input) : null;
-   }
-
-   public String extractSlashPayload(String input) {
-      if (input == null) return null;
-      String value = input.trim();
-      if (value.startsWith("/")) value = value.substring(1).trim();
-      String[] parts = value.split("\\s+", 2);
-      return parts[0].equalsIgnoreCase("lyra") ? (parts.length == 2 ? parts[1] : "") : null;
-   }
-
-   public void sendHelp(Minecraft client) {
-      LyraMessenger.reply(client, "Lyra commands:");
-      for (Definition definition : this.definitions) {
-         String aliases = definition.aliases().isEmpty() ? "" : " (aliases: " + String.join(", ", definition.aliases()) + ")";
-         LyraMessenger.reply(client, "/lyra " + definition.name() + (definition.usage().isEmpty() ? "" : " " + definition.usage()) + aliases);
-      }
-      LyraMessenger.reply(client, "Play/Pause: " + LyraClient.TOGGLE_PLAY_PAUSE_KEYBIND.getTranslatedKeyMessage().getString() + "; TAB: command completion");
-   }
-
-   public List<String> suggestions(String name, String args, List<String> songs) {
-      Definition definition = this.byName.get(name.toLowerCase(Locale.ROOT));
-      if (definition == null) return List.of();
-      if (definition.patterns().contains("<file>")) return songs.stream().filter(value -> startsWith(value, args)).toList();
-      String[] entered = args.split("\\s+", -1);
-      int index = entered.length - 1;
-      String prefix = index == 0 ? "" : args.substring(0, args.length() - entered[index].length());
-      List<String> result = new ArrayList<>();
-      for (String pattern : definition.patterns()) {
-         String[] tokens = pattern.split(" ");
-         if (index >= tokens.length) continue;
-         boolean matches = true;
-         for (int i = 0; i < index; i++) {
-            if (!tokens[i].equals("<instrument>") && !tokens[i].equalsIgnoreCase(entered[i])) matches = false;
+      SuggestionProvider<FabricClientCommandSource> instruments = (context, builder) -> {
+         String remaining = builder.getRemainingLowerCase();
+         for (NoteBlockInstrument instrument : NoteBlockInstrument.values()) {
+            String label = LyraSettings.prettyName(instrument);
+            if (label.toLowerCase(Locale.ROOT).startsWith(remaining)) {
+               builder.suggest(label);
+            }
          }
-         if (!matches) continue;
-         List<String> options = tokens[index].equals("<instrument>")
-               ? Arrays.stream(NoteBlockInstrument.values()).map(LyraSettings::prettyName).toList() : List.of(tokens[index]);
-         for (String option : options) if (startsWith(option, entered[index])) result.add(prefix + option);
-      }
-      return result.stream().distinct().toList();
+         return builder.buildFuture();
+      };
+      map.then(ClientCommands.literal("remove")
+            .then(ClientCommands.argument("from", StringArgumentType.word()).suggests(instruments)
+                  .executes(context -> result(handler.apply(client(context),
+                        "remove " + StringArgumentType.getString(context, "from"))))));
+      map.then(ClientCommands.literal("add")
+            .then(ClientCommands.argument("from", StringArgumentType.word()).suggests(instruments)
+                  .then(ClientCommands.argument("to", StringArgumentType.word()).suggests(instruments)
+                        .executes(context -> result(handler.apply(client(context), "add "
+                              + StringArgumentType.getString(context, "from") + " "
+                              + StringArgumentType.getString(context, "to")))))));
+      parent.then(map);
    }
 
-   private static boolean startsWith(String value, String prefix) {
-      return value.toLowerCase(Locale.ROOT).startsWith(prefix.toLowerCase(Locale.ROOT));
+   private LiteralArgumentBuilder<FabricClientCommandSource> songChoiceNode(String name, List<String> values) {
+      return choiceNode(name, values,
+            (client, value) -> this.handlers.handleSongConfig(client, name + " " + value));
+   }
+
+   private void addSongAction(LiteralArgumentBuilder<FabricClientCommandSource> parent, String name, String args) {
+      parent.then(ClientCommands.literal(name)
+            .executes(context -> result(this.handlers.handleSongConfig(client(context), args))));
+   }
+
+   private void addFileCommand(LiteralArgumentBuilder<FabricClientCommandSource> root, String name,
+         boolean optional, BiFunction<Minecraft, String, Boolean> handler) {
+      LiteralArgumentBuilder<FabricClientCommandSource> command = ClientCommands.literal(name);
+      if (optional) {
+         command.executes(context -> result(handler.apply(client(context), "")));
+      }
+      command.then(ClientCommands.argument("file", StringArgumentType.greedyString())
+            .suggests((context, builder) -> {
+               String remaining = builder.getRemainingLowerCase();
+               for (String song : this.handlers.availableSongNames()) {
+                  if (song.toLowerCase(Locale.ROOT).startsWith(remaining)) {
+                     builder.suggest(song);
+                  }
+               }
+               return builder.buildFuture();
+            })
+            .executes(context -> result(handler.apply(client(context),
+                  StringArgumentType.getString(context, "file")))));
+      root.then(command);
+   }
+
+   private static void addAction(LiteralArgumentBuilder<FabricClientCommandSource> root, String name,
+         Consumer<Minecraft> action) {
+      root.then(ClientCommands.literal(name).executes(context -> {
+         action.accept(client(context));
+         return 1;
+      }));
+   }
+
+   private static void addBooleanAction(LiteralArgumentBuilder<FabricClientCommandSource> root, String name,
+         Predicate<Minecraft> action) {
+      root.then(ClientCommands.literal(name).executes(context -> result(action.test(client(context)))));
+   }
+
+   private static void addInteger(LiteralArgumentBuilder<FabricClientCommandSource> root, String name,
+         String argumentName, int minimum, int maximum, BiFunction<Minecraft, String, Boolean> handler) {
+      root.then(ClientCommands.literal(name)
+            .then(ClientCommands.argument(argumentName, IntegerArgumentType.integer(minimum, maximum))
+                  .executes(context -> result(handler.apply(client(context),
+                        Integer.toString(IntegerArgumentType.getInteger(context, argumentName)))))));
+   }
+
+   private static void addChoice(LiteralArgumentBuilder<FabricClientCommandSource> root, String name,
+         List<String> choices, BiFunction<Minecraft, String, Boolean> handler) {
+      root.then(choiceNode(name, choices, handler));
+   }
+
+   private static LiteralArgumentBuilder<FabricClientCommandSource> choiceNode(String name, List<String> choices,
+         BiFunction<Minecraft, String, Boolean> handler) {
+      LiteralArgumentBuilder<FabricClientCommandSource> command = ClientCommands.literal(name);
+      for (String choice : choices) {
+         command.then(ClientCommands.literal(choice)
+               .executes(context -> result(handler.apply(client(context), choice))));
+      }
+      return command;
+   }
+
+   private static void addToggle(LiteralArgumentBuilder<FabricClientCommandSource> root, String name,
+         BiFunction<Minecraft, String, Boolean> handler) {
+      root.then(toggleNode(name, handler));
+   }
+
+   private static LiteralArgumentBuilder<FabricClientCommandSource> toggleNode(String name,
+         BiFunction<Minecraft, String, Boolean> handler) {
+      LiteralArgumentBuilder<FabricClientCommandSource> command = ClientCommands.literal(name);
+      addToggleChildren(command, handler);
+      return command;
+   }
+
+   private static void addToggleChildren(LiteralArgumentBuilder<FabricClientCommandSource> command,
+         BiFunction<Minecraft, String, Boolean> handler) {
+      for (String value : List.of("on", "off")) {
+         command.then(ClientCommands.literal(value)
+               .executes(context -> result(handler.apply(client(context), value))));
+      }
+   }
+
+   private static Minecraft client(CommandContext<FabricClientCommandSource> context) {
+      return context.getSource().getClient();
+   }
+
+   private static int result(boolean success) {
+      return success ? 1 : 0;
+   }
+
+   private int sendHelp(CommandContext<FabricClientCommandSource> context) {
+      Minecraft client = client(context);
+      LyraMessenger.reply(client, "Lyra commands:");
+      for (String usage : this.dispatcher.getAllUsage(this.rootNode, context.getSource(), true)) {
+         LyraMessenger.reply(client, "/lyra " + usage);
+      }
+      LyraMessenger.reply(client, "Play/Pause: "
+            + LyraClient.TOGGLE_PLAY_PAUSE_KEYBIND.getTranslatedKeyMessage().getString()
+            + "; TAB: command completion");
+      return 1;
+   }
+
+   private static List<String> append(List<String> values, String extra) {
+      List<String> result = new ArrayList<>(values);
+      result.add(extra);
+      return List.copyOf(result);
    }
 }

@@ -96,14 +96,6 @@ public final class LyraController {
             nearby.playableByInstrument(), snapshot.currentTick());
    }
 
-   public boolean handleChatCommand(Minecraft client, String chatMessage) {
-      return this.commandDispatcher.handleChatCommand(client, chatMessage);
-   }
-
-   public boolean handleSlashCommand(Minecraft client, String commandLine) {
-      return this.commandDispatcher.handleSlashCommand(client, commandLine);
-   }
-
    private void tickCentering(Minecraft client) {
       this.playerCenterer.tickCentering(client);
    }
