@@ -7,6 +7,7 @@ import io.voltikor.lyra.song.SongFileManager;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -18,6 +19,8 @@ class LyraCommandDispatcherTest extends MinecraftTestSupport {
       var brigadier = new CommandDispatcher<FabricClientCommandSource>();
       commands.register(brigadier);
 
+      var map = brigadier.getRoot().getChild("lyra").getChild("map");
+      assertEquals(5, brigadier.getAllUsage(map, null, false).length);
       assertTrue(brigadier.getRoot().getChild("lyra").getChildren().stream()
             .map(node -> node.getName())
             .toList()

@@ -8,6 +8,7 @@ import io.voltikor.lyra.song.SongFileManager;
 import io.voltikor.lyra.song.TempoQuantization;
 
 import java.nio.file.Path;
+import java.util.Locale;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
@@ -21,192 +22,197 @@ public final class SongConfigCommands {
       this.fileManager = fileManager;
    }
 
-   public boolean handleSongCommand(Minecraft client, String args, Path activePath) {
-      if (activePath == null) {
-         LyraMessenger.error(client, "No active or selected song.");
+   public boolean setTempoOverride(Minecraft client, Path activePath, TempoQuantization mode) {
+      if (mode == null) {
+         return invalid(client, "Invalid tempo mode. Valid: default, snap_nearest, snap_up, snap_down, reset");
+      }
+      if (mode == TempoQuantization.DEFAULT) {
+         return this.clearTempoOverride(client, activePath);
+      }
+      String key = this.storedPath(client, activePath);
+      if (key == null) {
          return false;
       }
-      String storedPath = this.fileManager.toStoredSongPath(activePath);
-      String[] split = args.trim().split("\\s+", 2);
-      String sub = split[0].toLowerCase(java.util.Locale.ROOT);
-      String value = split.length == 2 ? split[1].trim() : "";
+      this.fileManager.songConfigManager().setTempoOverride(key, mode);
+      LyraMessenger.reply(client, "Set tempo quantization override for " + activePath.getFileName() + " to "
+            + mode.name() + ".");
+      return true;
+   }
 
-      switch (sub) {
-         case "tempo" -> {
-            if (value.isEmpty()) {
-               LyraMessenger.error(client, "Usage: /lyra song tempo <mode|reset>");
-               return false;
-            }
-            if (value.equalsIgnoreCase("reset") || value.equalsIgnoreCase("default")) {
-               this.fileManager.songConfigManager().setTempoOverride(storedPath, null);
-               LyraMessenger.reply(client,
-                     "Cleared tempo quantization override for " + activePath.getFileName() + ".");
-            } else {
-               TempoQuantization mode = TempoQuantization.parse(value);
-               if (mode != null && mode != TempoQuantization.DEFAULT) {
-                  this.fileManager.songConfigManager().setTempoOverride(storedPath, mode);
-                  LyraMessenger.reply(client,
-                        "Set tempo quantization override for " + activePath.getFileName() + " to " + mode.name() + ".");
-               } else {
-                  LyraMessenger.error(client,
-                        "Invalid tempo mode. Valid: default, snap_nearest, snap_up, snap_down, reset");
-                  return false;
-               }
-            }
+   public boolean clearTempoOverride(Minecraft client, Path activePath) {
+      String key = this.storedPath(client, activePath);
+      if (key == null) {
+         return false;
+      }
+      this.fileManager.songConfigManager().setTempoOverride(key, null);
+      LyraMessenger.reply(client, "Cleared tempo quantization override for " + activePath.getFileName() + ".");
+      return true;
+   }
+
+   public boolean setTransposeOverride(Minecraft client, Path activePath, TransposeSetting transpose) {
+      if (transpose == null) {
+         return invalid(client, "Invalid transpose value. Valid: " + TransposeSetting.usage() + "|reset");
+      }
+      String key = this.storedPath(client, activePath);
+      if (key == null) {
+         return false;
+      }
+      this.fileManager.songConfigManager().setTransposeOverride(key, transpose);
+      LyraMessenger.reply(client, "Set transpose override for " + activePath.getFileName() + " to "
+            + transpose.serialized() + ".");
+      return true;
+   }
+
+   public boolean clearTransposeOverride(Minecraft client, Path activePath) {
+      String key = this.storedPath(client, activePath);
+      if (key == null) {
+         return false;
+      }
+      this.fileManager.songConfigManager().setTransposeOverride(key, null);
+      LyraMessenger.reply(client, "Cleared auto-transpose override for " + activePath.getFileName() + ".");
+      return true;
+   }
+
+   public boolean setOutOfRangeModeOverride(Minecraft client, Path activePath, OutOfRangeMode mode) {
+      if (mode == null) {
+         return invalid(client, "Invalid round mode. Valid: drop, clamp, fold, remap, reset");
+      }
+      String key = this.storedPath(client, activePath);
+      if (key == null) {
+         return false;
+      }
+      this.fileManager.songConfigManager().setOutOfRangeModeOverride(key, mode);
+      LyraMessenger.reply(client, "Set round override for " + activePath.getFileName() + " to "
+            + mode.name().toLowerCase(Locale.ROOT) + ".");
+      return true;
+   }
+
+   public boolean clearOutOfRangeModeOverride(Minecraft client, Path activePath) {
+      String key = this.storedPath(client, activePath);
+      if (key == null) {
+         return false;
+      }
+      this.fileManager.songConfigManager().setOutOfRangeModeOverride(key, null);
+      LyraMessenger.reply(client, "Cleared round override for " + activePath.getFileName() + ".");
+      return true;
+   }
+
+   public boolean listInstrumentOverrides(Minecraft client, Path activePath) {
+      String key = this.storedPath(client, activePath);
+      if (key == null) {
+         return false;
+      }
+      SongConfig config = this.fileManager.songConfigManager().getConfig(key);
+      if (config == null || config.mappedSources().isEmpty()) {
+         LyraMessenger.reply(client, "No per-song instrument mappings for " + activePath.getFileName() + ".");
+      } else {
+         StringBuilder message = new StringBuilder("Per-song instrument mappings for ")
+               .append(activePath.getFileName()).append(":\n");
+         for (NoteBlockInstrument source : config.mappedSources()) {
+            message.append("  ").append(LyraSettings.prettyName(source)).append(" -> ")
+                  .append(LyraSettings.prettyName(config.mapInstrument(source))).append("\n");
          }
-         case "transpose" -> {
-            if (value.isEmpty()) {
-               LyraMessenger.error(client, "Usage: /lyra song transpose <" + TransposeSetting.usage() + "|reset>");
-               return false;
-            }
-            if (value.equalsIgnoreCase("reset") || value.equalsIgnoreCase("default")) {
-               this.fileManager.songConfigManager().setTransposeOverride(storedPath, null);
-               LyraMessenger.reply(client,
-                     "Cleared auto-transpose override for " + activePath.getFileName() + ".");
-            } else {
-               TransposeSetting transpose = TransposeSetting.parse(value);
-               if (transpose == null) {
-                  LyraMessenger.error(client, "Invalid transpose value. Valid: " + TransposeSetting.usage() + "|reset");
-                  return false;
-               }
-               this.fileManager.songConfigManager().setTransposeOverride(storedPath, transpose);
-               LyraMessenger.reply(client, "Set transpose override for " + activePath.getFileName()
-                     + " to " + transpose.serialized() + ".");
-            }
+         LyraMessenger.reply(client, message.toString().trim());
+      }
+      return true;
+   }
+
+   public boolean clearInstrumentOverrides(Minecraft client, Path activePath) {
+      String key = this.storedPath(client, activePath);
+      if (key == null) {
+         return false;
+      }
+      this.fileManager.songConfigManager().clearInstrumentOverrides(key);
+      LyraMessenger.reply(client, "Cleared per-song instrument mappings for " + activePath.getFileName() + ".");
+      return true;
+   }
+
+   public boolean removeInstrumentOverride(Minecraft client, Path activePath, NoteBlockInstrument from) {
+      if (from == null) {
+         return invalid(client, "Unknown source instrument.");
+      }
+      String key = this.storedPath(client, activePath);
+      if (key == null) {
+         return false;
+      }
+      this.fileManager.songConfigManager().removeInstrumentOverride(key, from);
+      LyraMessenger.reply(client, "Removed per-song instrument mapping for " + LyraSettings.prettyName(from)
+            + " on " + activePath.getFileName() + ".");
+      return true;
+   }
+
+   public boolean setInstrumentOverride(Minecraft client, Path activePath,
+         NoteBlockInstrument from, NoteBlockInstrument to) {
+      if (from == null || to == null) {
+         return invalid(client, "Instrument mappings require a source and target instrument.");
+      }
+      String key = this.storedPath(client, activePath);
+      if (key == null) {
+         return false;
+      }
+      this.fileManager.songConfigManager().setInstrumentOverride(key, from, to);
+      LyraMessenger.reply(client, "Set per-song instrument mapping: " + LyraSettings.prettyName(from)
+            + " -> " + LyraSettings.prettyName(to) + " for " + activePath.getFileName() + ".");
+      return true;
+   }
+
+   public boolean showConfig(Minecraft client, Path activePath) {
+      String key = this.storedPath(client, activePath);
+      if (key == null) {
+         return false;
+      }
+      SongConfig config = this.fileManager.songConfigManager().getConfig(key);
+      if (config == null || config.isEmpty()) {
+         LyraMessenger.reply(client, "No per-song overrides applied for " + activePath.getFileName() + ".");
+      } else {
+         LyraMessenger.reply(client, "Per-song configuration for " + activePath.getFileName() + ":");
+         if (config.tempoOverride() != null) {
+            LyraMessenger.reply(client, " - Tempo override: " + config.tempoOverride().name());
          }
-         case "round" -> {
-            if (value.isEmpty()) {
-               LyraMessenger.error(client, "Usage: /lyra song round <drop|clamp|fold|remap|reset>");
-               return false;
+         if (config.transposeOverride() != null) {
+            LyraMessenger.reply(client, " - Transpose override: " + config.transposeOverride().serialized());
+         }
+         if (config.outOfRangeModeOverride() != null) {
+            LyraMessenger.reply(client, " - Round override: "
+                  + config.outOfRangeModeOverride().name().toLowerCase(Locale.ROOT));
+         }
+         if (!config.mappedSources().isEmpty()) {
+            StringBuilder message = new StringBuilder(" - Instrument mappings: ");
+            boolean first = true;
+            for (NoteBlockInstrument source : config.mappedSources()) {
+               if (!first) {
+                  message.append(", ");
+               }
+               message.append(LyraSettings.prettyName(source)).append("->")
+                     .append(LyraSettings.prettyName(config.mapInstrument(source)));
+               first = false;
             }
-            if (value.equalsIgnoreCase("reset") || value.equalsIgnoreCase("default")) {
-               this.fileManager.songConfigManager().setOutOfRangeModeOverride(storedPath, null);
-               LyraMessenger.reply(client, "Cleared round override for " + activePath.getFileName() + ".");
-            } else {
-               OutOfRangeMode mode = OutOfRangeMode.fromInput(value);
-               if (mode == null) {
-                  LyraMessenger.error(client,
-                        "Invalid round mode. Valid: drop, clamp, fold, remap, reset");
-                  return false;
-               }
-               this.fileManager.songConfigManager().setOutOfRangeModeOverride(storedPath, mode);
-               LyraMessenger.reply(client, "Set round override for " + activePath.getFileName()
-                     + " to " + mode.name().toLowerCase(java.util.Locale.ROOT) + ".");
-            }
-         }
-         case "map" -> {
-            return this.handleSongMapCommand(client, activePath, storedPath, value);
-         }
-         case "config" -> {
-            SongConfig cfg = this.fileManager.songConfigManager().getConfig(storedPath);
-            if (cfg == null || cfg.isEmpty()) {
-               LyraMessenger.reply(client, "No per-song overrides applied for " + activePath.getFileName() + ".");
-            } else {
-               LyraMessenger.reply(client, "Per-song configuration for " + activePath.getFileName() + ":");
-               if (cfg.tempoOverride() != null) {
-                  LyraMessenger.reply(client, " - Tempo override: " + cfg.tempoOverride().name());
-               }
-               if (cfg.transposeOverride() != null) {
-                  LyraMessenger.reply(client, " - Transpose override: " + cfg.transposeOverride().serialized());
-               }
-               if (cfg.outOfRangeModeOverride() != null) {
-                  LyraMessenger.reply(client, " - Round override: "
-                        + cfg.outOfRangeModeOverride().name().toLowerCase(java.util.Locale.ROOT));
-               }
-               if (!cfg.mappedSources().isEmpty()) {
-                  StringBuilder sb = new StringBuilder(" - Instrument mappings: ");
-                  boolean first = true;
-                  for (NoteBlockInstrument source : cfg.mappedSources()) {
-                     if (!first)
-                        sb.append(", ");
-                     sb.append(LyraSettings.prettyName(source)).append("->")
-                           .append(LyraSettings.prettyName(cfg.mapInstrument(source)));
-                     first = false;
-                  }
-                  LyraMessenger.reply(client, sb.toString());
-               }
-            }
-         }
-         case "clear" -> {
-            this.fileManager.songConfigManager().clearConfig(storedPath);
-            LyraMessenger.reply(client,
-                  "Cleared all per-song configuration overrides for " + activePath.getFileName() + ".");
-         }
-         default -> {
-            LyraMessenger.error(client,
-                  "Usage: /lyra song <transpose|tempo|round|map|config|clear> [args]");
-            return false;
+            LyraMessenger.reply(client, message.toString());
          }
       }
       return true;
    }
 
-   private boolean handleSongMapCommand(Minecraft client, Path activePath, String storedPath, String args) {
-      if (args == null || args.trim().isEmpty() || args.trim().equalsIgnoreCase("list")) {
-         SongConfig cfg = this.fileManager.songConfigManager().getConfig(storedPath);
-         if (cfg == null || cfg.mappedSources().isEmpty()) {
-            LyraMessenger.reply(client, "No per-song instrument mappings for " + activePath.getFileName() + ".");
-         } else {
-            StringBuilder sb = new StringBuilder("Per-song instrument mappings for ").append(activePath.getFileName())
-                  .append(":\n");
-            for (NoteBlockInstrument source : cfg.mappedSources()) {
-               sb.append("  ").append(LyraSettings.prettyName(source)).append(" -> ")
-                     .append(LyraSettings.prettyName(cfg.mapInstrument(source))).append("\n");
-            }
-            LyraMessenger.reply(client, sb.toString().trim());
-         }
-         return true;
+   public boolean clearConfig(Minecraft client, Path activePath) {
+      String key = this.storedPath(client, activePath);
+      if (key == null) {
+         return false;
       }
-
-      String trimmed = args.trim();
-      if (trimmed.equalsIgnoreCase("clear")) {
-         this.fileManager.songConfigManager().clearInstrumentOverrides(storedPath);
-         LyraMessenger.reply(client, "Cleared per-song instrument mappings for " + activePath.getFileName() + ".");
-         return true;
-      }
-
-      String[] parts = trimmed.split("\\s+");
-      if (parts[0].equalsIgnoreCase("remove")) {
-         if (parts.length != 2) {
-            LyraMessenger.error(client, "Usage: /lyra song map remove <from>");
-            return false;
-         }
-         NoteBlockInstrument from = LyraSettings.parseInstrument(parts[1]);
-         if (from == null) {
-            LyraMessenger.error(client, "Unknown source instrument: " + parts[1]);
-            return false;
-         } else {
-            this.fileManager.songConfigManager().removeInstrumentOverride(storedPath, from);
-            LyraMessenger.reply(client, "Removed per-song instrument mapping for " + LyraSettings.prettyName(from)
-                  + " on " + activePath.getFileName() + ".");
-         }
-         return true;
-      }
-
-      if (parts[0].equalsIgnoreCase("add")) {
-         if (parts.length != 3) {
-            LyraMessenger.error(client, "Usage: /lyra song map add <from> <to>");
-            return false;
-         }
-         NoteBlockInstrument from = LyraSettings.parseInstrument(parts[1]);
-         if (from == null) {
-            LyraMessenger.error(client, "Unknown source instrument: " + parts[1]);
-            return false;
-         }
-         NoteBlockInstrument to = LyraSettings.parseInstrument(parts[2]);
-         if (to == null) {
-            LyraMessenger.error(client, "Unknown target instrument: " + parts[2]);
-            return false;
-         } else {
-            this.fileManager.songConfigManager().setInstrumentOverride(storedPath, from, to);
-            LyraMessenger.reply(client, "Set per-song instrument mapping: " + LyraSettings.prettyName(from)
-                  + " -> " + LyraSettings.prettyName(to) + " for " + activePath.getFileName() + ".");
-         }
-         return true;
-      }
-
-      LyraMessenger.error(client, "Usage: /lyra song map [add|remove|clear|list]");
-      return false;
+      this.fileManager.songConfigManager().clearConfig(key);
+      LyraMessenger.reply(client, "Cleared all per-song configuration overrides for " + activePath.getFileName() + ".");
+      return true;
    }
 
+   private String storedPath(Minecraft client, Path activePath) {
+      if (activePath == null) {
+         LyraMessenger.error(client, "No active or selected song.");
+         return null;
+      }
+      return this.fileManager.toStoredSongPath(activePath);
+   }
+
+   private static boolean invalid(Minecraft client, String message) {
+      LyraMessenger.error(client, message);
+      return false;
+   }
 }

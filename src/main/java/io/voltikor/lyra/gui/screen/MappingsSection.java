@@ -11,14 +11,15 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
 
 final class MappingsSection implements LyraScreenSection {
    private boolean songMappings;
    private AbstractWidget help;
 
-   void editSelectedSong() { songMappings = true; }
+   void editSelectedSong() {
+      songMappings = true;
+   }
 
    @Override
    public void build(LyraScreen screen) {
@@ -36,7 +37,9 @@ final class MappingsSection implements LyraScreenSection {
          }
 
          @Override
-         public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) { return false; }
+         public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+            return false;
+         }
       });
       screen.row(y -> screen.button("Editing: " + (songMappings ? "selected song" : "global mappings"),
             screen.left(), y, screen.span(), () -> {
@@ -52,20 +55,29 @@ final class MappingsSection implements LyraScreenSection {
          instrumentMapping(screen, source,
                () -> songMappings
                      ? screen.songConfig() != null && screen.songConfig().mappedSources().contains(source)
-                           ? screen.songConfig().mapInstrument(source) : null
-                     : screen.settings().mappedSources().contains(source) ? screen.settings().mapInstrument(source) : null,
+                           ? screen.songConfig().mapInstrument(source)
+                           : null
+                     : screen.settings().mappedSources().contains(source) ? screen.settings().mapInstrument(source)
+                           : null,
                target -> {
-                  if (songMappings) screen.songChange(() -> {
-                     if (target == null) screen.files().songConfigManager().removeInstrumentOverride(screen.songKey(), source);
-                     else screen.files().songConfigManager().setInstrumentOverride(screen.songKey(), source, target);
-                  });
-                  else screen.settings().setInstrumentOverride(source, target);
+                  if (songMappings)
+                     screen.songChange(() -> {
+                        if (target == null)
+                           screen.files().songConfigManager().removeInstrumentOverride(screen.songKey(), source);
+                        else
+                           screen.files().songConfigManager().setInstrumentOverride(screen.songKey(), source, target);
+                     });
+                  else
+                     screen.settings().setInstrumentOverride(source, target);
                });
       }
       screen.row(y -> screen.button("Clear " + (songMappings ? "song" : "global") + " mappings",
             screen.left(), y, screen.span(), () -> {
-               if (songMappings) screen.songChange(() -> screen.files().songConfigManager().clearInstrumentOverrides(screen.songKey()));
-               else screen.settings().clearInstrumentOverrides();
+               if (songMappings)
+                  screen.songChange(
+                        () -> screen.files().songConfigManager().clearInstrumentOverrides(screen.songKey()));
+               else
+                  screen.settings().clearInstrumentOverrides();
                screen.rebuild();
             }));
    }
@@ -81,11 +93,13 @@ final class MappingsSection implements LyraScreenSection {
                anchor -> screen.openDropdown(anchor, LyraScreen.pretty(source), choices, read, write)));
          screen.liveUpdate(() -> control.setMessage(Component.literal(
                LyraScreen.pretty(source) + ": " + LyraScreen.pretty(read.get()))));
-         screen.hint(control, "Choose a replacement instrument. Inherit removes this override. Reload the song to apply.");
+         screen.hint(control,
+               "Choose a replacement instrument. Inherit removes this override. Reload the song to apply.");
          screen.renderOnly((graphics, mouseX, mouseY, delta) -> {
             graphics.item(screen.instrumentIcon(source), screen.left() + 4, y + 2);
             NoteBlockInstrument target = read.get();
-            if (target == null) target = songMappings ? screen.settings().mapInstrument(source) : source;
+            if (target == null)
+               target = songMappings ? screen.settings().mapInstrument(source) : source;
             graphics.item(screen.instrumentIcon(target), screen.left() + screen.span() - 20, y + 2);
          });
       });
@@ -124,10 +138,10 @@ final class MappingsSection implements LyraScreenSection {
             + "                  Bit, Banjo, Pling\n"
             + "F#4 - F#6: Flute, Cow bell\n"
             + "F#5 - F#7: Bell, Chime, Xylophone\n";
-      //? if >=26.1 {
+      // ? if >=26.1 {
       guide += "\nTrumpet / Exposed: F#3 - F#5\n"
             + "Weathered / Oxidized: F#2 - F#4\n";
-      //? }
+      // ? }
       return guide + "\nBass drum, Snare, Hat: percussion\n"
             + "Mob heads: fixed sounds; Custom head: varies\n"
             + "\nF# = F sharp; C4 = middle C\n"

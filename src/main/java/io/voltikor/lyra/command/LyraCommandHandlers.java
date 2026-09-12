@@ -1,20 +1,29 @@
 package io.voltikor.lyra.command;
 
 import io.voltikor.lyra.config.LyraSettings;
+import io.voltikor.lyra.config.TransposeSetting;
+import io.voltikor.lyra.hud.HudAnchor;
+import io.voltikor.lyra.noteblock.InstrumentDetectMode;
+import io.voltikor.lyra.noteblock.InstrumentMatchMode;
 import io.voltikor.lyra.noteblock.NoteBlockScanner;
 import io.voltikor.lyra.noteblock.PlayerCenterer;
+import io.voltikor.lyra.noteblock.RotateMode;
 import io.voltikor.lyra.playback.PlaybackCoordinator;
 import io.voltikor.lyra.playback.PlaybackSnapshot;
 import io.voltikor.lyra.playback.SongLoadIntent;
+import io.voltikor.lyra.song.OutOfRangeMode;
 import io.voltikor.lyra.song.Song;
 import io.voltikor.lyra.song.SongFileManager;
+import io.voltikor.lyra.song.TempoQuantization;
 import io.voltikor.lyra.song.decoder.SongDecoders;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Function;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
 
 @Environment(EnvType.CLIENT)
 public final class LyraCommandHandlers {
@@ -99,63 +108,142 @@ public final class LyraCommandHandlers {
       return this.songs.availableSongs().stream().map(path -> path.getFileName().toString()).toList();
    }
 
-   public boolean handleSongConfig(Minecraft client, String args) {
+   public boolean showSongConfig(Minecraft client) {
+      return this.applySongCommand(client, activePath -> this.songConfigCommands.showConfig(client, activePath));
+   }
+
+   public boolean clearSongConfig(Minecraft client) {
+      return this.applySongCommand(client, activePath -> this.songConfigCommands.clearConfig(client, activePath));
+   }
+
+   public boolean setSongTempo(Minecraft client, TempoQuantization mode) {
+      return this.applySongCommand(client, activePath -> this.songConfigCommands.setTempoOverride(client, activePath, mode));
+   }
+
+   public boolean clearSongTempo(Minecraft client) {
+      return this.applySongCommand(client, activePath -> this.songConfigCommands.clearTempoOverride(client, activePath));
+   }
+
+   public boolean setSongTranspose(Minecraft client, TransposeSetting transpose) {
+      return this.applySongCommand(client,
+            activePath -> this.songConfigCommands.setTransposeOverride(client, activePath, transpose));
+   }
+
+   public boolean clearSongTranspose(Minecraft client) {
+      return this.applySongCommand(client, activePath -> this.songConfigCommands.clearTransposeOverride(client, activePath));
+   }
+
+   public boolean setSongOutOfRangeMode(Minecraft client, OutOfRangeMode mode) {
+      return this.applySongCommand(client,
+            activePath -> this.songConfigCommands.setOutOfRangeModeOverride(client, activePath, mode));
+   }
+
+   public boolean clearSongOutOfRangeMode(Minecraft client) {
+      return this.applySongCommand(client,
+            activePath -> this.songConfigCommands.clearOutOfRangeModeOverride(client, activePath));
+   }
+
+   public boolean listSongInstrumentMap(Minecraft client) {
+      return this.applySongCommand(client,
+            activePath -> this.songConfigCommands.listInstrumentOverrides(client, activePath));
+   }
+
+   public boolean clearSongInstrumentMap(Minecraft client) {
+      return this.applySongCommand(client,
+            activePath -> this.songConfigCommands.clearInstrumentOverrides(client, activePath));
+   }
+
+   public boolean removeSongInstrumentMap(Minecraft client, NoteBlockInstrument from) {
+      return this.applySongCommand(client,
+            activePath -> this.songConfigCommands.removeInstrumentOverride(client, activePath, from));
+   }
+
+   public boolean setSongInstrumentMap(Minecraft client, NoteBlockInstrument from, NoteBlockInstrument to) {
+      return this.applySongCommand(client,
+            activePath -> this.songConfigCommands.setInstrumentOverride(client, activePath, from, to));
+   }
+
+   public boolean setMode(Minecraft client, InstrumentMatchMode mode) {
+      return this.settingsCommands.setMode(client, this.settings, mode);
+   }
+
+   public boolean setInstrumentDetectMode(Minecraft client, InstrumentDetectMode mode) {
+      return this.settingsCommands.setInstrumentDetectMode(client, this.settings, mode);
+   }
+
+   public boolean setTempoQuantization(Minecraft client, TempoQuantization quantization) {
+      return this.settingsCommands.setTempoQuantization(client, this.settings, quantization);
+   }
+
+   public boolean setTickDelay(Minecraft client, int ticks) {
+      return this.settingsCommands.setTickDelay(client, this.settings, ticks);
+   }
+
+   public boolean setCheckNoteblocksAgainDelay(Minecraft client, int ticks) {
+      return this.settingsCommands.setCheckNoteblocksAgainDelay(client, this.settings, ticks);
+   }
+
+   public boolean setConcurrentTuneBlocks(Minecraft client, int count) {
+      return this.settingsCommands.setConcurrentTuneBlocks(client, this.settings, count);
+   }
+
+   public boolean setBooleanFlag(Minecraft client, BooleanSetting setting, boolean enabled) {
+      return this.settingsCommands.setBooleanFlag(client, this.settings, setting, enabled);
+   }
+
+   public boolean setTranspose(Minecraft client, TransposeSetting transpose) {
+      return this.settingsCommands.setTranspose(client, this.settings, transpose);
+   }
+
+   public boolean setRotateMode(Minecraft client, RotateMode mode) {
+      return this.settingsCommands.setRotateMode(client, this.settings, mode);
+   }
+
+   public boolean setOutOfRangeMode(Minecraft client, OutOfRangeMode mode) {
+      return this.settingsCommands.setOutOfRangeMode(client, this.settings, mode);
+   }
+
+   public boolean setShowHud(Minecraft client, boolean enabled) {
+      return this.settingsCommands.setShowHud(client, this.settings, enabled);
+   }
+
+   public boolean toggleHud(Minecraft client) {
+      return this.settingsCommands.toggleHud(client, this.settings);
+   }
+
+   public boolean setHudAnchor(Minecraft client, HudAnchor anchor) {
+      return this.settingsCommands.setHudAnchor(client, this.settings, anchor);
+   }
+
+   public boolean setHudAutoHide(Minecraft client, boolean enabled) {
+      return this.settingsCommands.setHudAutoHide(client, this.settings, enabled);
+   }
+
+   public boolean listInstrumentMap(Minecraft client) {
+      return this.settingsCommands.listInstrumentMap(client, this.settings);
+   }
+
+   public boolean clearInstrumentMap(Minecraft client) {
+      return this.settingsCommands.clearInstrumentMap(client, this.settings);
+   }
+
+   public boolean removeInstrumentMap(Minecraft client, NoteBlockInstrument from) {
+      return this.settingsCommands.removeInstrumentMap(client, this.settings, from);
+   }
+
+   public boolean setInstrumentMap(Minecraft client, NoteBlockInstrument from, NoteBlockInstrument to) {
+      return this.settingsCommands.setInstrumentMap(client, this.settings, from, to);
+   }
+
+   private boolean applySongCommand(Minecraft client, Function<Path, Boolean> command) {
       PlaybackSnapshot snapshot = this.playback.snapshot();
       Path activePath = snapshot.loadedSongPath() != null ? snapshot.loadedSongPath() : this.playback.selectedSongPath();
-      boolean valid = this.songConfigCommands.handleSongCommand(client, args, activePath);
+      boolean valid = command.apply(activePath);
       if (valid && !this.songs.songConfigManager().lastSaveSucceeded()) {
          LyraMessenger.error(client, "Song overrides changed in memory, but could not be saved. See the log.");
          return false;
       }
       return valid;
-   }
-
-   public boolean setMode(Minecraft client, String args) {
-      return this.settingsCommands.setMode(client, this.settings, args);
-   }
-
-   public boolean setInstrumentDetectMode(Minecraft client, String args) {
-      return this.settingsCommands.setInstrumentDetectMode(client, this.settings, args);
-   }
-
-   public boolean setTempoQuantization(Minecraft client, String args) {
-      return this.settingsCommands.setTempoQuantization(client, this.settings, args);
-   }
-
-   public boolean setTickDelay(Minecraft client, String args) {
-      return this.settingsCommands.setTickDelay(client, this.settings, args);
-   }
-
-   public boolean setCheckNoteblocksAgainDelay(Minecraft client, String args) {
-      return this.settingsCommands.setCheckNoteblocksAgainDelay(client, this.settings, args);
-   }
-
-   public boolean setConcurrentTuneBlocks(Minecraft client, String args) {
-      return this.settingsCommands.setConcurrentTuneBlocks(client, this.settings, args);
-   }
-
-   public boolean setBooleanFlag(Minecraft client, String key, String args) {
-      return this.settingsCommands.setBooleanFlag(client, this.settings, key, args);
-   }
-
-   public boolean setTranspose(Minecraft client, String args) {
-      return this.settingsCommands.setTranspose(client, this.settings, args);
-   }
-
-   public boolean setRotateMode(Minecraft client, String args) {
-      return this.settingsCommands.setRotateMode(client, this.settings, args);
-   }
-
-   public boolean setOutOfRangeMode(Minecraft client, String args) {
-      return this.settingsCommands.setOutOfRangeMode(client, this.settings, args);
-   }
-
-   public boolean handleHudCommand(Minecraft client, String args) {
-      return this.settingsCommands.handleHudCommand(client, this.settings, args);
-   }
-
-   public boolean setInstrumentMap(Minecraft client, String args) {
-      return this.settingsCommands.setInstrumentMap(client, this.settings, args);
    }
 
    private boolean resolveAndLoad(Minecraft client, String args, SongLoadIntent intent) {

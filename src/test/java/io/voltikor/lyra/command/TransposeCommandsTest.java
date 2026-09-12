@@ -16,18 +16,18 @@ class TransposeCommandsTest extends MinecraftTestSupport {
    void invalidOffsetsDoNotReplaceGlobalOrSongPresets() {
       var settings = new LyraSettings();
       var global = new LyraSettingsCommands();
-      assertTrue(global.setTranspose(null, settings, "+18"));
-      assertFalse(global.setTranspose(null, settings, "5"));
+      assertTrue(global.setTranspose(null, settings, TransposeSetting.UP_18));
+      assertFalse(global.setTranspose(null, settings, null));
       assertEquals(TransposeSetting.UP_18, settings.transpose());
 
       var files = new SongFileManager();
       files.songConfigManager().initialize(directory);
       var song = new SongConfigCommands(files);
       Path path = directory.resolve("song.nbs");
-      assertTrue(song.handleSongCommand(null, "transpose -24", path));
-      assertFalse(song.handleSongCommand(null, "transpose -13", path));
+      assertTrue(song.setTransposeOverride(null, path, TransposeSetting.DOWN_24));
+      assertFalse(song.setTransposeOverride(null, path, null));
       assertEquals(TransposeSetting.DOWN_24, files.songConfigManager().getTransposeOverride(files.toStoredSongPath(path)));
-      assertTrue(song.handleSongCommand(null, "transpose reset", path));
+      assertTrue(song.clearTransposeOverride(null, path));
       assertNull(files.songConfigManager().getTransposeOverride(files.toStoredSongPath(path)));
    }
 }
