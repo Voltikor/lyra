@@ -8,13 +8,16 @@ import io.voltikor.lyra.song.Note;
 import io.voltikor.lyra.song.Song;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.Set;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.core.BlockPos;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 
@@ -93,16 +96,17 @@ public final class SongPlaybackEngine {
    public enum TickResult { NONE, ADVANCED, SONG_ENDED, SURVIVAL_REQUIRED }
 
    private void playPreviewNotes(Minecraft client, Collection<Note> notes, LyraSettings settings) {
-      if (client.player != null) {
-         for (Note note : notes) {
-            SoundEvent event;
-            if (settings.mode() == InstrumentMatchMode.EXACT_INSTRUMENTS && note.instrument() != null) {
-               event = (SoundEvent) note.instrument().getSoundEvent().value();
-            } else {
-               event = (SoundEvent) SoundEvents.NOTE_BLOCK_HARP.value();
-            }
+      if (client.player == null) return;
+      record Key(SoundEvent event, int noteLevel) {}
+      Set<Key> played = new HashSet<>();
+      for (Note note : notes) {
+         if (!settings.polyphonic() && !played.isEmpty()) break;
+         SoundEvent event = settings.mode() == InstrumentMatchMode.EXACT_INSTRUMENTS && note.instrument() != null
+               ? note.instrument().getSoundEvent().value()
+               : SoundEvents.NOTE_BLOCK_HARP.value();
 
-            client.player.playSound(event, 2.0F, NoteBlockTuner.pitchForNoteLevel(note.noteLevel()));
+         if (played.add(new Key(event, note.noteLevel()))) {
+            client.getSoundManager().play(SimpleSoundInstance.forUI(event, NoteBlockTuner.pitchForNoteLevel(note.noteLevel()), 1.0F));
          }
       }
    }
