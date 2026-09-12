@@ -72,7 +72,8 @@ public final class SongFileManager {
       LyraSettings snapshot = this.settingsForSong(path, settings);
       return CompletableFuture.supplyAsync(() -> {
          try {
-            return SongDecoders.parse(path, snapshot, warningSink);
+            Song decoded = SongDecoders.decode(path, snapshot);
+            return new SongNormalizer().normalize(decoded, snapshot, warningSink);
          } catch (CancellationException cancelled) {
             throw cancelled;
          } catch (Exception exception) {

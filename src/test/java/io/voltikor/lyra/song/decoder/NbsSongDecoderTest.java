@@ -70,7 +70,7 @@ class NbsSongDecoderTest extends MinecraftTestSupport {
       Files.write(path, new byte[] {1});
 
       Exception error = assertThrows(Exception.class,
-            () -> SongDecoders.parse(path, new LyraSettings(), warning -> {}));
+            () -> SongDecoders.decode(path, new LyraSettings()));
 
       assertInstanceOf(EOFException.class, error);
    }
@@ -79,7 +79,9 @@ class NbsSongDecoderTest extends MinecraftTestSupport {
       LyraSettings settings = new LyraSettings();
       settings.setTempoQuantization(quantization);
       settings.setTranspose(io.voltikor.lyra.config.TransposeSetting.OFF);
-      return SongDecoders.parse(path, settings, warning -> {});
+      Song song = SongDecoders.decode(path, settings);
+      song.finishLoading();
+      return song;
    }
 
    private static void writeNbs(Path path, int version, int tempoHundredths, NbsNote... notes) throws IOException {
