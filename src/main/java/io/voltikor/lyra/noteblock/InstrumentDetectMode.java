@@ -12,7 +12,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 public enum InstrumentDetectMode {
    BLOCK_STATE {
       public NoteBlockInstrument detect(BlockState noteBlockState, BlockPos noteBlockPos, ClientLevel world) {
-         return (NoteBlockInstrument)noteBlockState.getValue(NoteBlock.INSTRUMENT);
+         return noteBlockState.getValue(NoteBlock.INSTRUMENT);
       }
    },
    BELOW_BLOCK {

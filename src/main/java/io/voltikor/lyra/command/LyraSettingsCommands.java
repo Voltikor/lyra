@@ -91,7 +91,7 @@ public final class LyraSettingsCommands {
    }
 
    public void setTickDelayValue(LyraSettings settings, int value) {
-      settings.setTickDelay(Math.clamp((long) value, 1, 20));
+      settings.setTickDelay(Math.clamp(value, 1, 20));
    }
 
    public void setConcurrentTuneBlocksValue(LyraSettings settings, int value) {

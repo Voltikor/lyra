@@ -72,7 +72,7 @@ public final class NoteBlockScanner {
             for (int x = min; x < max; ++x) {
                int xSq = x * x;
                for (int z = min; z < max; ++z) {
-                  if ((double) (xSq + ySq + z * z) > maxDistSq) {
+                  if (xSq + ySq + z * z > maxDistSq) {
                      continue;
                   }
                   pos.set(playerPos.getX() + x, playerPos.getY() + yOff, playerPos.getZ() + z);
@@ -84,7 +84,7 @@ public final class NoteBlockScanner {
                   }
 
                   NoteBlockInstrument instrument = settings.instrumentDetectMode().detect(state, pos, client.level);
-                  int level = (Integer) state.getValue(NoteBlock.NOTE);
+                  int level = state.getValue(NoteBlock.NOTE);
                   recordNearbyNoteblock(candidates, instrumentCounts, pos.immutable(), level, instrument, settings.mode());
                   ++playableTotal;
                }
@@ -193,7 +193,7 @@ public final class NoteBlockScanner {
             BlockState blockState = client.level.getBlockState(blockPos);
             if (blockState.getBlock() == Blocks.NOTE_BLOCK) {
                int targetLevel = targetNote.noteLevel();
-               int currentLevel = (Integer) blockState.getValue(NoteBlock.NOTE);
+               int currentLevel = blockState.getValue(NoteBlock.NOTE);
                if (targetLevel != currentLevel) {
                   this.tuneHits.put(blockPos, NoteBlockTuner.calcHits(currentLevel, targetLevel));
                }

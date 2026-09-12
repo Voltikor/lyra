@@ -64,7 +64,7 @@ public final class SongPlaybackEngine {
 
    /** Moves the next note cursor without triggering skipped notes or clearing block mappings. */
    public void seek(Song song, int tick) {
-      this.currentTick = Math.clamp((long) tick, 0, song.lastTick());
+      this.currentTick = Math.clamp(tick, 0, song.lastTick());
    }
 
    public TickResult tickPlayback(Minecraft client, Song song, PlaybackMode mode, LyraSettings settings,

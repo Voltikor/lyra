@@ -50,17 +50,17 @@ public final class NbsSongDecoder implements SongDecoder {
       String author = readString(in);
       readString(in);
       readString(in);
-      float rawSpeed = (float) readLittleEndianShort(in) / 100.0F;
-      if (rawSpeed <= 0.0F) {
-         rawSpeed = 10.0F;
+      double rawSpeed = (double) readLittleEndianShort(in) / 100.0;
+      if (rawSpeed <= 0.0) {
+         rawSpeed = 10.0;
       }
-      float speed = quant != null ? quant.calculateEffectiveSpeed(rawSpeed) : rawSpeed;
+      double speed = quant != null ? quant.calculateEffectiveSpeed(rawSpeed) : rawSpeed;
 
       if (quant == null || quant == TempoQuantization.DEFAULT) {
          int mcTicksRaw = (int) Math.round(20.0 / rawSpeed);
          LOGGER.debug("[TempoQuantization] mode=DEFAULT  rawSpeed={} NBS-TPS  ({} MC-ticks/NBS-tick)",
                String.format("%.4f", rawSpeed), mcTicksRaw);
-      } else if (Float.compare(speed, rawSpeed) != 0) {
+      } else if (Double.compare(speed, rawSpeed) != 0) {
          int mcTicks = (int) Math.round(20.0 / speed);
          LOGGER.info(
                "[TempoQuantization] mode={}  rawSpeed={} NBS-TPS -> effectiveSpeed={} NBS-TPS  ({} MC-ticks/NBS-tick, delta={} NBS-TPS)",
@@ -101,8 +101,8 @@ public final class NbsSongDecoder implements SongDecoder {
             return song;
          }
 
-         accumulatedNbsTicks += (double) jumpTicks;
-         double currentMcTick = (accumulatedNbsTicks - 1.0D) * (20.0D / (double) speed);
+         accumulatedNbsTicks += jumpTicks;
+         double currentMcTick = (accumulatedNbsTicks - 1.0D) * (20.0D / speed);
 
          while (true) {
             short jumpLayers = readLittleEndianShort(in);

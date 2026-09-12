@@ -155,7 +155,7 @@ public final class NoteBlockTuner {
    }
 
    public static float pitchForNoteLevel(int noteLevel) {
-      return (float) Math.pow(2.0F, (double) (noteLevel - 12) / 12.0F);
+      return (float) Math.pow(2.0, (noteLevel - 12) / 12.0);
    }
 
    public static int calcHits(int from, int to) {

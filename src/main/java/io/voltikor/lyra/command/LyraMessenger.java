@@ -140,11 +140,11 @@ public final class LyraMessenger {
 
    public static void sendPlayerMessage(Object player, Component message, boolean overlay) {
       // Keep the legacy LocalPlayer path intact while supporting the 26.1 message API.
-      if (invokePlayerMessage(player, "displayClientMessage", new Class[]{Component.class, Boolean.TYPE}, message, overlay)) {
+      if (invokePlayerMessage(player, "displayClientMessage", new Class<?>[]{Component.class, Boolean.TYPE}, message, overlay)) {
          return;
       }
       String modernMethod = overlay ? "sendOverlayMessage" : "sendSystemMessage";
-      invokePlayerMessage(player, modernMethod, new Class[]{Component.class}, message);
+      invokePlayerMessage(player, modernMethod, new Class<?>[]{Component.class}, message);
    }
 
    public static boolean invokePlayerMessage(Object player, String methodName, Class<?>[] parameterTypes, Object... args) {

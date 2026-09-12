@@ -10,7 +10,6 @@ import io.voltikor.lyra.song.TempoQuantization;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.io.Reader;
-import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -117,9 +116,9 @@ public final class LyraSettingsStorage {
 
       }
       settings.applyLoadedValues(loaded -> {
-         loaded.setTickDelay(Math.clamp((long) stored.tickDelay, 1, 20));
+         loaded.setTickDelay(Math.clamp(stored.tickDelay, 1, 20));
          loaded.setConcurrentTuneBlocks(stored.concurrentTuneBlocks == 0 ? 0
-               : Math.clamp((long) stored.concurrentTuneBlocks, 1, 20));
+               : Math.clamp(stored.concurrentTuneBlocks, 1, 20));
          if (stored.mode != null) loaded.setMode(stored.mode);
          if (stored.instrumentDetectMode != null) loaded.setInstrumentDetectMode(stored.instrumentDetectMode);
          if (stored.tempoQuantization != null) loaded.setTempoQuantization(stored.tempoQuantization);
@@ -131,7 +130,7 @@ public final class LyraSettingsStorage {
          TransposeSetting transpose = TransposeSetting.parse(stored.transpose);
          loaded.setTranspose(transpose == null ? TransposeSetting.AUTO : transpose);
          loaded.setSwingArm(stored.swingArm);
-         loaded.setCheckNoteblocksAgainDelay(Math.clamp((long) stored.checkNoteblocksAgainDelay, 1, 100));
+         loaded.setCheckNoteblocksAgainDelay(Math.clamp(stored.checkNoteblocksAgainDelay, 1, 100));
          loaded.setShowHud(stored.showHud);
          loaded.setHudAnchor(parsedAnchor != null ? parsedAnchor : HudAnchor.BOTTOM_RIGHT);
          loaded.setHudAutoHide(stored.hudAutoHide);

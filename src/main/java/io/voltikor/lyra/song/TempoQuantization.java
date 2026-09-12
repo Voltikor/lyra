@@ -32,15 +32,15 @@ public enum TempoQuantization {
       };
    }
 
-   public float calculateEffectiveSpeed(float originalSpeed) {
-      if (originalSpeed <= 0.0F) {
-         return 10.0F;
+   public double calculateEffectiveSpeed(double originalSpeed) {
+      if (originalSpeed <= 0.0) {
+         return 10.0;
       }
       if (this == DEFAULT) {
          return originalSpeed;
       }
 
-      double exactMcTicksPerNbsTick = 20.0D / (double)originalSpeed;
+      double exactMcTicksPerNbsTick = 20.0 / originalSpeed;
 
       int mcTicks;
       switch (this) {
@@ -67,6 +67,6 @@ public enum TempoQuantization {
          mcTicks = 1;
       }
 
-      return (float)(20.0D / (double)mcTicks);
+      return 20.0 / mcTicks;
    }
 }
