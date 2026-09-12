@@ -58,7 +58,7 @@ public final class LyraController {
    public net.minecraft.client.gui.screens.Screen createConfigScreen(net.minecraft.client.gui.screens.Screen parent) {
       this.initialize();
       this.playback.refreshNearbyPlayableBlocks(Minecraft.getInstance());
-      return new io.voltikor.lyra.gui.LyraScreen(parent, this.settings, this.fileManager, this.playback, this.commandHandlers);
+      return new io.voltikor.lyra.gui.screen.LyraScreen(parent, this.settings, this.fileManager, this.playback, this.commandHandlers);
    }
 
    public void registerCommands(com.mojang.brigadier.CommandDispatcher<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> dispatcher) {
@@ -110,7 +110,7 @@ public final class LyraController {
 
    private void tickPlayableBlocksScan(Minecraft client) {
       this.scanner.tickPlayableBlocksScan(client,
-            this.requiredSongForHud() != null || client.screen instanceof io.voltikor.lyra.gui.LyraScreen, this.settings);
+            this.requiredSongForHud() != null || client.screen instanceof io.voltikor.lyra.gui.screen.LyraScreen, this.settings);
    }
 
    private Song requiredSongForHud() {

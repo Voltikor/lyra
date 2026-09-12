@@ -1,4 +1,4 @@
-package io.voltikor.lyra.gui;
+package io.voltikor.lyra.gui.screen;
 
 import io.voltikor.lyra.MinecraftTestSupport;
 import java.util.ArrayList;

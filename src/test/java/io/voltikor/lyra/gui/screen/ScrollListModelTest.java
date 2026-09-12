@@ -1,4 +1,4 @@
-package io.voltikor.lyra.gui;
+package io.voltikor.lyra.gui.screen;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;

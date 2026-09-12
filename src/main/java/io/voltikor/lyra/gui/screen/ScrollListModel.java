@@ -1,4 +1,4 @@
-package io.voltikor.lyra.gui;
+package io.voltikor.lyra.gui.screen;
 
 final class ScrollListModel {
    static final int ROW_HEIGHT = 22;

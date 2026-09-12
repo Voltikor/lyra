@@ -1,5 +1,6 @@
-package io.voltikor.lyra.gui;
+package io.voltikor.lyra.gui.screen;
 
+import io.voltikor.lyra.gui.DeskTheme;
 import io.voltikor.lyra.playback.PlaybackCoordinator;
 import io.voltikor.lyra.playback.PlaybackSnapshot;
 import io.voltikor.lyra.song.Song;

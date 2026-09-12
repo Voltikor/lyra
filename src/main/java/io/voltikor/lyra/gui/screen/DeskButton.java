@@ -1,4 +1,6 @@
-package io.voltikor.lyra.gui;
+package io.voltikor.lyra.gui.screen;
+
+import io.voltikor.lyra.gui.DeskTheme;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;

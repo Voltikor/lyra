@@ -1,5 +1,6 @@
-package io.voltikor.lyra.gui;
+package io.voltikor.lyra.gui.screen;
 
+import io.voltikor.lyra.gui.DeskTheme;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
