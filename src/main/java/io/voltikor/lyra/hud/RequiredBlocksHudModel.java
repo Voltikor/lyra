@@ -18,8 +18,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
 
 @Environment(EnvType.CLIENT)
-final class RequiredBlocksHudModel {
-   List<RequiredHudRow> buildRequiredBlocksRows(Song requirementsSong, int playableBlocksTotal,
+public final class RequiredBlocksHudModel {
+   public List<RequiredHudRow> buildRequiredBlocksRows(Song requirementsSong, int playableBlocksTotal,
          Map<NoteBlockInstrument, Integer> playableBlocksByInstrument, LyraSettings settings) {
       Map<NoteBlockInstrument, Integer> requiredByInstrument = this.requiredBlocksByInstrument(requirementsSong);
       if (requiredByInstrument.isEmpty()) {
@@ -113,7 +113,7 @@ final class RequiredBlocksHudModel {
       }
    }
 
-   record RequiredHudRow(Component instrumentName, Block icon, Block replacedIcon, int available,
+   public record RequiredHudRow(Component instrumentName, Block icon, Block replacedIcon, int available,
          int required, int missing, int color) {
    }
 }
