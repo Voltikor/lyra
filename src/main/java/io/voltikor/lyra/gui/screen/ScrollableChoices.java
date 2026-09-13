@@ -56,7 +56,7 @@ final class ScrollableChoices<T> extends AbstractWidget {
          int y = getY() + 1 + (int) Math.floor(i * ScrollListModel.ROW_HEIGHT - scroll.offset());
          var option = options.get(i);
          boolean current = selected.test(option.value());
-         if (i == hovered || isFocused() && i == cursor) graphics.fill(getX() + 1, y, getRight() - 9, y + 22, DeskTheme.CONTROL_HOVER_BACKGROUND);
+         if (i == hovered) graphics.fill(getX() + 1, y, getRight() - 9, y + 22, DeskTheme.CONTROL_HOVER_BACKGROUND);
          if (current) graphics.fill(getX() + 2, y + 3, getX() + 4, y + 19, DeskTheme.ACCENT);
          int inset = option.icon().isEmpty() ? 8 : 28;
          if (!option.icon().isEmpty()) graphics.item(option.icon(), getX() + 8, y + 3);

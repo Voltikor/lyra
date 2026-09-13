@@ -5,6 +5,7 @@ import io.voltikor.lyra.config.LyraSettings;
 import io.voltikor.lyra.config.SongConfig;
 import io.voltikor.lyra.config.TransposeSetting;
 import io.voltikor.lyra.gui.DeskTheme;
+import io.voltikor.lyra.hud.RequiredBlocksHudModel.RequiredHudRow;
 import io.voltikor.lyra.noteblock.InstrumentIcons;
 import io.voltikor.lyra.playback.PlaybackCoordinator;
 import io.voltikor.lyra.playback.SongLoadIntent;
@@ -33,6 +34,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
 import org.lwjgl.glfw.GLFW;
 
@@ -42,10 +44,13 @@ public final class LyraScreen extends Screen {
    private final SongFileManager files;
    private final PlaybackCoordinator playback;
    private final LyraCommandHandlers commands;
+   private final Supplier<List<RequiredHudRow>> instrumentRows;
+   private final MenuState menuState;
    private final List<Consumer<Integer>> rows = new ArrayList<>();
    private final List<Runnable> liveUpdates = new ArrayList<>();
    private final List<Label> labels = new ArrayList<>();
    private final EnumMap<NoteBlockInstrument, ItemStack> instrumentIcons = new EnumMap<>(NoteBlockInstrument.class);
+   private final java.util.Map<Block, ItemStack> blockIcons = new java.util.HashMap<>();
    private final EnumMap<Section, LyraScreenSection> sections = new EnumMap<>(Section.class);
    private final MusicSection musicSection = new MusicSection();
    private final MappingsSection mappingsSection = new MappingsSection();
@@ -59,7 +64,7 @@ public final class LyraScreen extends Screen {
    private String feedback = "";
 
    enum Section {
-      PLAYER("Player"), TUNING("Tuning"), MUSIC("Music"), HUD("HUD"), MAPS("Maps");
+      PLAYER("Player"), TUNING("Tuning"), MUSIC("Music"), HUD("List"), MAPS("Maps");
 
       final String label;
 
@@ -70,12 +75,26 @@ public final class LyraScreen extends Screen {
 
    public LyraScreen(Screen parent, LyraSettings settings, SongFileManager files,
          PlaybackCoordinator playback, LyraCommandHandlers commands) {
+      this(parent, settings, files, playback, commands, List::of, new MenuState());
+   }
+
+   public LyraScreen(Screen parent, LyraSettings settings, SongFileManager files,
+         PlaybackCoordinator playback, LyraCommandHandlers commands,
+         Supplier<List<RequiredHudRow>> instrumentRows) {
+      this(parent, settings, files, playback, commands, instrumentRows, new MenuState());
+   }
+
+   public LyraScreen(Screen parent, LyraSettings settings, SongFileManager files,
+         PlaybackCoordinator playback, LyraCommandHandlers commands,
+         Supplier<List<RequiredHudRow>> instrumentRows, MenuState menuState) {
       super(Component.literal("Lyra"));
       this.parent = parent;
       this.settings = settings;
       this.files = files;
       this.playback = playback;
       this.commands = commands;
+      this.instrumentRows = instrumentRows;
+      this.menuState = menuState;
       sections.put(Section.PLAYER, new PlayerSection());
       sections.put(Section.TUNING, new TuningSection());
       sections.put(Section.MUSIC, musicSection);
@@ -121,7 +140,7 @@ public final class LyraScreen extends Screen {
    }
 
    void editSelectedSongMusic() {
-      musicSection.editSelectedSong();
+      musicSection.editSelectedSong(this);
       navigate(Section.MUSIC);
    }
 
@@ -156,6 +175,8 @@ public final class LyraScreen extends Screen {
    SongFileManager files() { return files; }
    PlaybackCoordinator playback() { return playback; }
    LyraCommandHandlers commands() { return commands; }
+   List<RequiredHudRow> instrumentRows() { return instrumentRows.get(); }
+   MenuState menuState() { return menuState; }
    Minecraft minecraftClient() { return minecraft; }
    Font font() { return font; }
    int left() { return left; }
@@ -199,6 +220,11 @@ public final class LyraScreen extends Screen {
       // Item components are bound when joining a world in 26.1+.
       if (minecraft.level == null) return ItemStack.EMPTY;
       return instrumentIcons.computeIfAbsent(instrument, value -> new ItemStack(InstrumentIcons.blockFor(value)));
+   }
+
+   ItemStack blockIcon(Block block) {
+      if (minecraft.level == null || block == null) return ItemStack.EMPTY;
+      return blockIcons.computeIfAbsent(block, ItemStack::new);
    }
 
    void toggle(String name, String description, BooleanSupplier read, Consumer<Boolean> write) {
@@ -255,9 +281,11 @@ public final class LyraScreen extends Screen {
 
    private void closeDropdown() {
       if (dropdown == null) return;
+      Button anchor = dropdownAnchor;
+      if (anchor instanceof DeskButton deskButton) deskButton.clearPressed();
       removeWidget(dropdown);
       dropdown = null;
-      setFocused(dropdownAnchor);
+      setFocused(anchor);
       dropdownAnchor = null;
    }
 
@@ -266,7 +294,6 @@ public final class LyraScreen extends Screen {
       if (dropdown == null) {
          boolean handled = super.mouseClicked(event, doubleClick);
          if (dropdown != null) setFocused(dropdown);
-         else if (getFocused() instanceof DeskButton) setFocused(null);
          return handled;
       }
       if (dropdown.isMouseOver(event.x(), event.y())) dropdown.mouseClicked(event, doubleClick);
@@ -282,8 +309,11 @@ public final class LyraScreen extends Screen {
    @Override
    public boolean mouseReleased(MouseButtonEvent event) {
       if (dropdown == null) return super.mouseReleased(event);
+      Button anchor = dropdownAnchor;
       setDragging(false);
-      return dropdown.mouseReleased(event);
+      boolean handled = dropdown.mouseReleased(event);
+      if (anchor instanceof DeskButton deskButton) deskButton.clearPressed();
+      return handled;
    }
 
    @Override
@@ -421,5 +451,12 @@ public final class LyraScreen extends Screen {
    public void onClose() {
       files.flushSettings(settings);
       minecraft.setScreen(parent);
+   }
+
+   public static final class MenuState {
+      private boolean editSelectedSongMusic;
+
+      boolean editSelectedSongMusic() { return editSelectedSongMusic; }
+      void setEditSelectedSongMusic(boolean value) { editSelectedSongMusic = value; }
    }
 }

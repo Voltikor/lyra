@@ -17,6 +17,7 @@ import io.voltikor.lyra.song.SongFileManager;
 import io.voltikor.lyra.song.SongLoadCoordinator;
 
 import java.nio.file.Path;
+import java.util.List;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
@@ -45,6 +46,8 @@ public final class LyraController {
    private final LyraCommandHandlers commandHandlers = new LyraCommandHandlers(this.settings, this.fileManager,
          this.playback, this.scanner, this.playerCenterer);
    private final LyraCommandDispatcher commandDispatcher = new LyraCommandDispatcher(this.commandHandlers);
+   private final io.voltikor.lyra.gui.screen.LyraScreen.MenuState menuState =
+         new io.voltikor.lyra.gui.screen.LyraScreen.MenuState();
 
    private boolean initialized;
 
@@ -58,7 +61,14 @@ public final class LyraController {
    public net.minecraft.client.gui.screens.Screen createConfigScreen(net.minecraft.client.gui.screens.Screen parent) {
       this.initialize();
       this.playback.refreshNearbyPlayableBlocks(Minecraft.getInstance());
-      return new io.voltikor.lyra.gui.screen.LyraScreen(parent, this.settings, this.fileManager, this.playback, this.commandHandlers);
+      return new io.voltikor.lyra.gui.screen.LyraScreen(parent, this.settings, this.fileManager, this.playback,
+            this.commandHandlers, this::instrumentListRows, this.menuState);
+   }
+
+   private List<io.voltikor.lyra.hud.RequiredBlocksHudModel.RequiredHudRow> instrumentListRows() {
+      NearbyNoteBlocksSnapshot nearby = this.scanner.nearbySnapshot();
+      return new io.voltikor.lyra.hud.RequiredBlocksHudModel().buildRequiredBlocksRows(
+            this.requiredSongForHud(), nearby.playableTotal(), nearby.playableByInstrument(), this.settings);
    }
 
    public void registerCommands(com.mojang.brigadier.CommandDispatcher<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> dispatcher) {

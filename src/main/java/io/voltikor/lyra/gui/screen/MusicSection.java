@@ -6,15 +6,12 @@ import io.voltikor.lyra.song.TempoQuantization;
 import java.util.Arrays;
 
 final class MusicSection implements LyraScreenSection {
-   private boolean songSettings;
-
-   void editSelectedSong() {
-      songSettings = true;
-   }
+   void editSelectedSong(LyraScreen screen) { screen.menuState().setEditSelectedSongMusic(true); }
 
    @Override
    public void build(LyraScreen screen) {
-      screen.scopeToggle(songSettings, "global music", value -> songSettings = value);
+      boolean songSettings = screen.menuState().editSelectedSongMusic();
+      screen.scopeToggle(songSettings, "global music", screen.menuState()::setEditSelectedSongMusic);
       if (songSettings && screen.songKey() == null) {
          screen.feedback("Choose a song in the player first, or switch to global music.");
          return;
@@ -33,7 +30,7 @@ final class MusicSection implements LyraScreenSection {
    }
 
    private void buildTempoSetting(LyraScreen screen) {
-      if (!songSettings) {
+      if (!screen.menuState().editSelectedSongMusic()) {
          screen.cycle("Tempo rounding", "Fit song timing to Minecraft ticks. Reload the song after changing.",
                TempoQuantization.values(), screen.settings()::tempoQuantization,
                screen.settings()::setTempoQuantization);
@@ -47,7 +44,7 @@ final class MusicSection implements LyraScreenSection {
    }
 
    private void buildOutOfRangeSetting(LyraScreen screen) {
-      if (!songSettings) {
+      if (!screen.menuState().editSelectedSongMusic()) {
          screen.cycle("Out-of-range notes",
                "Drop, clamp, fold by octaves, or remap notes outside the playable range. Reload to apply.",
                OutOfRangeMode.values(), screen.settings()::outOfRangeMode, screen.settings()::setOutOfRangeMode);
@@ -72,7 +69,7 @@ final class MusicSection implements LyraScreenSection {
 
    @Override
    public String subtitle(LyraScreen screen) {
-      if (!songSettings) return "Global music settings; changes apply when you reload a song.";
+      if (!screen.menuState().editSelectedSongMusic()) return "Global music settings; changes apply when you reload a song.";
       return "Song: " + (screen.songKey() == null ? "no song selected" : screen.songKey());
    }
 }
