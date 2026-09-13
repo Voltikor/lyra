@@ -1,6 +1,7 @@
 package io.voltikor.lyra.gui.screen;
 
 import io.voltikor.lyra.noteblock.InstrumentDetectMode;
+import io.voltikor.lyra.noteblock.InstrumentMatchMode;
 import io.voltikor.lyra.noteblock.RotateMode;
 
 final class TuningSection implements LyraScreenSection {
@@ -15,6 +16,9 @@ final class TuningSection implements LyraScreenSection {
             settings::checkNoteblocksAgainDelay, settings::setCheckNoteblocksAgainDelay, 1, 100);
       screen.cycle("Detect instruments", "Read the note block state, or inspect the block below it.",
             InstrumentDetectMode.values(), settings::instrumentDetectMode, settings::setInstrumentDetectMode);
+      screen.cycle("Instruments",
+            "Exact instruments preserves timbre. Any uses the available blocks. Reload the song after changing.",
+            InstrumentMatchMode.values(), settings::mode, settings::setMode);
       screen.toggle("Turn toward notes", "Automatically face the next note block.", settings::autoRotate, settings::setAutoRotate);
       screen.cycle("Aim at", "Choose the visible face or the closest face of each note block.",
             RotateMode.values(), settings::rotateMode, settings::setRotateMode);

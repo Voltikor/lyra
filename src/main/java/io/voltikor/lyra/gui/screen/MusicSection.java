@@ -1,6 +1,5 @@
 package io.voltikor.lyra.gui.screen;
 
-import io.voltikor.lyra.noteblock.InstrumentMatchMode;
 import io.voltikor.lyra.song.OutOfRangeMode;
 import io.voltikor.lyra.song.TempoQuantization;
 import java.util.Arrays;
@@ -17,12 +16,6 @@ final class MusicSection implements LyraScreenSection {
          return;
       }
 
-      var settings = screen.settings();
-      if (!songSettings) {
-         screen.cycle("Instruments",
-               "Exact instruments preserves timbre. Any uses the available blocks. Reload the song after changing.",
-               InstrumentMatchMode.values(), settings::mode, settings::setMode);
-      }
       buildTempoSetting(screen);
       screen.transpose(songSettings);
       buildOutOfRangeSetting(screen);
